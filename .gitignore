@@ -1,0 +1,14 @@
+# Build
+.gradle/
+build/
+out/
+
+# IDE (personal settings)
+.idea/
+*.iml
+
+# Correspondence desk: changes under the reader, deliberately outside git
+exchange/
+
+# Run artifacts (JTL logs, reports) are produced outside the repository
+results/
