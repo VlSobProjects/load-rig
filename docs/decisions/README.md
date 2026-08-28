@@ -33,3 +33,4 @@ The registry is the only index. Add the row when the record lands on `developmen
 
 | # | Title | Status | Sessions |
 | --- | --- | --- | --- |
+| 1 | [One answer shape per capture: the fragment mode](dr-1-one-answer-shape-per-capture.md) | Draft | 2026-08-28-implementation-1 |

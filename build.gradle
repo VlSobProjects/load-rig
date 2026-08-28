@@ -1,5 +1,8 @@
 plugins {
     id 'java'
+    // The run harness is started as a program: a load run must never be a task of the build,
+    // because `./gradlew build` has to stay independent of a running stack.
+    id 'application'
 }
 
 group = 'loadrig'
@@ -9,6 +12,16 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+application {
+    mainClass = 'loadrig.run.TransportSmokeRun'
+}
+
+tasks.named('run') {
+    // A run states its parameters on the command line, so the rig's own properties are carried
+    // into the program the build starts; nothing else of the build's environment is.
+    systemProperties System.properties.findAll { name, value -> name.startsWith('loadrig.') }
 }
 
 repositories {
