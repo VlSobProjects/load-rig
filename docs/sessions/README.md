@@ -64,3 +64,4 @@ that is missing from the registry is effectively lost. Add the row when the bran
 | Date | Type | Summary | DR | Status | Branch | Link |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-08-28 | implementation | The transport skeleton: one linear walk that plays every role against the running stack, with the answer shape, the scraped token and the identities read out of the answers | DR-1 | completed | `feature/lr1-transport-skeleton` | [note](2026-08-28-implementation-1_handoff.md) |
+| 2026-08-28 | architecture | The two patterns fixed before the code hardens around them: the profile as external data over a code-owned vocabulary, and the rig as a generation target whose pattern is enforced by types | DR-2, DR-3 | completed | `docs/dr_2-3-profile-and-generation-target` | [note](2026-08-28-architecture-1_handoff.md) |
