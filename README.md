@@ -26,8 +26,20 @@ back are stated in [`docs/brief.md`](docs/brief.md). The ordered work is in
 ./gradlew test           # tests only
 ```
 
-The unit tests need no running SUT. Load runs against the SUT stack are a later work item
-(`docs/roadmap.md`) and are started by their own documented commands.
+The unit tests need no running SUT.
+
+The transport smoke run does: it drives a running stack with a few virtual users, walks every
+element of the transport once and leaves a JTL result log under `results/`, outside version
+control.
+
+```bash
+./gradlew run                                    # the defaults: a stack on the capture host
+./gradlew run -Dloadrig.smoke.virtualUsers=4     # a run states its parameters on the command line
+```
+
+It is not a capture and carries no load profile: it proves that the rig drives the application.
+The profiles, the run harness and the capture artifacts are later work items
+(`docs/roadmap.md`).
 
 ## Layout
 
