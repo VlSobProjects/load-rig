@@ -1,6 +1,6 @@
 # DR 1 — One answer shape per capture: the fragment mode
 
-**Status:** Draft
+**Status:** Accepted
 
 ## Context
 

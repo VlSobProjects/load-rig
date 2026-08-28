@@ -63,3 +63,4 @@ that is missing from the registry is effectively lost. Add the row when the bran
 
 | Date | Type | Summary | DR | Status | Branch | Link |
 | --- | --- | --- | --- | --- | --- | --- |
+| 2026-08-28 | implementation | The transport skeleton: one linear walk that plays every role against the running stack, with the answer shape, the scraped token and the identities read out of the answers | DR-1 | completed | `feature/lr1-transport-skeleton` | [note](2026-08-28-implementation-1_handoff.md) |
