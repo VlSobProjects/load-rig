@@ -18,7 +18,7 @@ repositories {
 dependencies {
     // The load model and the run harness are built on JMeter driven as code.
     // The DSL embeds JMeter 5.6.x; no JMX files exist in this repository.
-    implementation 'us.abstracta.jmeter:jmeter-java-dsl:2.1'
+    implementation 'us.abstracta.jmeter:jmeter-java-dsl:2.2.1'
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
