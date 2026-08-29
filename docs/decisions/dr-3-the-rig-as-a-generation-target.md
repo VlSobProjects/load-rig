@@ -1,6 +1,6 @@
 # DR 3 — The rig as a generation target
 
-**Status:** Draft
+**Status:** Accepted
 
 ## Context
 
@@ -77,7 +77,12 @@ holds them:
 
 - The step kit is born inside LR-2 and LR-3, as the refactoring those items force anyway; the
   private step methods of the transport walk are its prototype. It is not built speculatively
-  ahead of them, and it earns no roadmap item of its own.
+  ahead of them, and it earns no roadmap item of its own. Implemented by the second LR-3
+  session, the kit's realized boundary is: a request takes its stable name, its content
+  assertion and its correlation rules by signature and passes methods and parameters through to
+  the DSL untouched; a step bundles the weight, the mix kind, the registry gate and the think
+  time; the correlation dictionary lives beside the surface; and the scenario registry is
+  materialized over the closed name list, so a missing scenario refuses the wiring.
 - The named failure mode of the kit is the DSL over the DSL. The boundary: the kit bundles what
   belongs to one step — sampler, assertion, extraction, name — and everything the underlying
   DSL already expresses well passes through untouched.

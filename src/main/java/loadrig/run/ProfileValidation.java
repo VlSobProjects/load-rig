@@ -5,6 +5,7 @@ import java.util.Locale;
 import loadrig.model.profile.EquilibriumCheck;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
+import loadrig.model.scenario.MixSurvivalCheck;
 
 /**
  * Parses and checks a profile file without applying any load, so that a broken profile is found
@@ -12,8 +13,8 @@ import loadrig.model.profile.ProfileLoader;
  *
  * <p>It prints the intensities the profile implies - the numbers the profile deliberately does
  * not state, because they are computed from the mix, the users and the think time - and holds
- * the equilibrium invariant against them. A refused profile is reported with the reason and a
- * non-zero exit.
+ * the equilibrium invariant against them, and the profile's mix against the scenarios as they
+ * are coded. A refused profile is reported with the reason and a non-zero exit.
  */
 public final class ProfileValidation {
 
@@ -27,6 +28,7 @@ public final class ProfileValidation {
         try {
             LoadProfile profile = ProfileLoader.load(profileFile);
             EquilibriumCheck.Intensities intensities = EquilibriumCheck.check(profile);
+            MixSurvivalCheck.check(profile);
             System.out.println("the profile \"" + profile.name() + "\" (" + profileFile
                     + ") holds:");
             System.out.printf(Locale.ENGLISH, "  %d virtual users, ramp %d s, steady window %d min,"
@@ -42,6 +44,7 @@ public final class ProfileValidation {
             System.out.printf(Locale.ENGLISH, "  net drift over the window: %.1f rows against a seeded volume"
                             + " of %d - the population holds%n",
                     intensities.netDriftOverWindow(), profile.seededVolume());
+            System.out.println("  the mix survives the scenario populations");
         } catch (IllegalArgumentException e) {
             System.err.println("the profile " + profileFile + " is refused: " + e.getMessage());
             System.exit(1);

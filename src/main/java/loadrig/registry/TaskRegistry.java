@@ -1,10 +1,13 @@
 package loadrig.registry;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import loadrig.model.Role;
 import loadrig.model.SutSurface.Transition;
 
@@ -18,8 +21,9 @@ import loadrig.model.SutSurface.Transition;
  * Reading needs no lease - several sessions opening one hot task at once is the discussion
  * scenario, the one deliberate concurrency of the profile.
  *
- * <p>Which task the registry hands out is the first fit; how often a step asks for a hot task
- * rather than a cold one is the profile's skew and lives with the profile, not here.
+ * <p>A lease is handed out first fit; a read is drawn at random among the fitting tasks, so the
+ * attention the skew sends to the hot set spreads over the set. How often a step asks for a hot
+ * task rather than a cold one is the profile's skew and lives with the profile, not here.
  */
 public final class TaskRegistry {
 
@@ -103,15 +107,25 @@ public final class TaskRegistry {
         leasedIds.remove(lease.task().taskId());
     }
 
-    /** A task the account may open for reading, from the hot set or from the rest. */
+    /**
+     * A task the account may open for reading, from the hot set or from the rest, drawn at
+     * random among the fitting ones: the skew decides how much attention the hot set receives,
+     * and the draw spreads that attention over the set instead of converging on its first
+     * member alone.
+     */
     public synchronized TaskFacts toOpen(String username, Role role, boolean hot) {
+        List<TaskFacts> fitting = new ArrayList<>();
         for (TaskFacts facts : tasks.values()) {
             if (inHotSet(facts) == hot && visibleTo(facts, username, role)) {
-                return facts;
+                fitting.add(facts);
             }
         }
-        throw new RegistryStarvedException("no " + (hot ? "hot" : "cold") + " task is visible to "
-                + username + " among the " + tasks.size() + " registered");
+        if (fitting.isEmpty()) {
+            throw new RegistryStarvedException("no " + (hot ? "hot" : "cold")
+                    + " task is visible to " + username + " among the " + tasks.size()
+                    + " registered");
+        }
+        return fitting.get(ThreadLocalRandom.current().nextInt(fitting.size()));
     }
 
     /**
@@ -126,14 +140,18 @@ public final class TaskRegistry {
                     "only a manager visits a task outside their own area; " + username + " is "
                             + role);
         }
+        List<TaskFacts> fitting = new ArrayList<>();
         for (TaskFacts facts : tasks.values()) {
             if (inHotSet(facts) && !username.equals(facts.creator())
                     && !username.equals(facts.assignee())) {
-                return facts;
+                fitting.add(facts);
             }
         }
-        throw new RegistryStarvedException("no hot task is outside the area of " + username
-                + " among the " + tasks.size() + " registered");
+        if (fitting.isEmpty()) {
+            throw new RegistryStarvedException("no hot task is outside the area of " + username
+                    + " among the " + tasks.size() + " registered");
+        }
+        return fitting.get(ThreadLocalRandom.current().nextInt(fitting.size()));
     }
 
     private void moved(TaskFacts held, Transition transition, String assignee) {
