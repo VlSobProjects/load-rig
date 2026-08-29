@@ -71,6 +71,13 @@ made: the registries are deliberately stack-free.
 - **The registries do not schedule.** Which task or session is handed out is first fit; how
   often a step asks for hot rather than cold, and whether a starved step may wait, is the
   profile's decision (LR-3). Starvation here is an exception, never a silent retry.
+- **One session per account, encoded by the key.** The session registry keys its state by
+  username, so two live sessions of one account are structurally impossible. This encodes the
+  specification's anti-requirement - virtual users must not share an account, or the run
+  benchmarks lock contention and every report asks about the same worker - rather than assuming
+  the SUT forbids concurrent sign-ins, which it probably does not. A load model that wanted
+  several sessions per account would key by a session id, not by name; that boundary sits with
+  the scale boundary of DR-4.
 - **The step kit of DR-3 was not started.** The registries forced no scenario refactoring, and
   the kit is born of LR-3's, not speculatively.
 
@@ -78,6 +85,16 @@ made: the registries are deliberately stack-free.
 - Whether the seeded history the SUT's seeding item produces can pre-fill the task registry —
   and in what form the rig learns the seeded tasks' identities — belongs to the LR-4/LR-5
   conversation; the registry accepts pre-registration already.
+- The transport context of a session - the cookie store and the CSRF token of the last page
+  the session loaded - is deliberately not the registry's: the lease carries the username only.
+  Today the transport walk holds both per thread (the DSL's cookie element and the per-thread
+  token variable), which is right while one thread is one session. LR-3 breaks that equality:
+  a session outlives the iteration and passes between threads, so the context must travel with
+  the session, joined by username - valid exactly because of the one-session-per-account
+  invariant. Where it lives is LR-3's first wiring decision: a transport-side map by username,
+  or a typed attachment held by the session registry, attached at sign-in and dropped at
+  sign-out. The post-session review leaned to the attachment, because it makes the sign-out and
+  the dropped context one act instead of two structures kept consistent by discipline.
 - First-fit picking is deterministic and can favour early accounts under contention; whether
   LR-3 needs fairness or randomization in the pick is left to the profile work.
 
@@ -90,6 +107,8 @@ made: the registries are deliberately stack-free.
 
 ## References
 - Branch: `feature/lr2-session-and-task-registries`.
-- Decision records: none opened; the choices above are implementation choices inside DR-2 and
-  DR-3.
+- Decision records: DR-4, opened by the post-session review - the one-monitor concurrency of
+  the registries scoped to this rig's scale, with the corporate-scale alternative and the
+  supersession triggers named. The remaining choices above are implementation choices inside
+  DR-2 and DR-3.
 - Documents changed: `docs/roadmap.md` — LR-2 marked done.
