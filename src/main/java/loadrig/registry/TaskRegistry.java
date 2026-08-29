@@ -108,6 +108,21 @@ public final class TaskRegistry {
     }
 
     /**
+     * Forgets a task the system no longer holds: another session deleted it between this one's
+     * pick and its request, and the answer named nothing. Neither a transition nor a release -
+     * the row is gone, and a registry that kept it would hand out a ghost and spend the rest of
+     * the run's steps learning the same thing again.
+     *
+     * <p>Deliberately tolerant of a task it does not know and of a lease it does not hold: two
+     * sessions can meet the same deletion, and the second must not fail over the first having
+     * already recorded it.
+     */
+    public synchronized void vanished(String taskId) {
+        tasks.remove(taskId);
+        leasedIds.remove(taskId);
+    }
+
+    /**
      * A task the account may open for reading, from the hot set or from the rest, drawn at
      * random among the fitting ones: the skew decides how much attention the hot set receives,
      * and the draw spreads that attention over the set instead of converging on its first

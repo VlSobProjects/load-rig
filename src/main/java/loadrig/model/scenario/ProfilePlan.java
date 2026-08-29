@@ -38,21 +38,11 @@ public final class ProfilePlan {
     private final String baseUrl;
     private final LoadProfile profile;
     private final ScenarioWiring wiring;
-    private final RefusalLedger refusals = new RefusalLedger();
 
     public ProfilePlan(String baseUrl, LoadProfile profile, ScenarioWiring wiring) {
         this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
         this.profile = Objects.requireNonNull(profile, "profile");
         this.wiring = Objects.requireNonNull(wiring, "wiring");
-    }
-
-    /**
-     * What the plan's own tally recorded while it ran. The plan builds the element that fills it,
-     * so the plan holds it; the harness asks for it when it writes the report. The starvation
-     * ledger arrives from the other direction because the scenario gates fill that one.
-     */
-    public RefusalLedger refusals() {
-        return refusals;
     }
 
     public DslTestPlan plan(String jtlDirectory, String jtlFileName) {
@@ -106,7 +96,7 @@ public final class ProfilePlan {
      * unaffected, and the split lives in the report the harness writes beside it.
      */
     private DslJsr223PostProcessor refusalTally() {
-        return jsr223PostProcessor(s -> refusals.answered(s.prev.getResponseCode(),
+        return jsr223PostProcessor(s -> wiring.refusals().answered(s.prev.getResponseCode(),
                 TransportContext.isAToken(s.vars.get(SessionSteps.SESSION_TOKEN_VARIABLE))));
     }
 

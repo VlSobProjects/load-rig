@@ -68,6 +68,34 @@ class RefusalLedgerTest {
     }
 
     @Test
+    @DisplayName("the tasks lost under a session are counted apart from the answers naming nothing")
+    void countsTheVanishedTasksApart() {
+        RefusalLedger ledger = new RefusalLedger();
+        ledger.answered("404", HOLDING_A_TOKEN);
+        ledger.aTaskVanishedUnderASession("17");
+        ledger.answered("404", HOLDING_A_TOKEN);
+
+        assertEquals(2L, ledger.counts().get(RefusalLedger.NAMES_NOTHING));
+        assertEquals(1, ledger.tasksVanishedUnderASession(),
+                "one of the two was a task deleted under a session; the other named nothing for"
+                        + " some other reason and is not tolerated");
+    }
+
+    @Test
+    @DisplayName("one deletion met by several sessions is one task lost, not several")
+    void countsTheTaskAndNotTheAnswers() {
+        RefusalLedger ledger = new RefusalLedger();
+        ledger.aTaskVanishedUnderASession("17");
+        ledger.aTaskVanishedUnderASession("17");
+        ledger.aTaskVanishedUnderASession("18");
+        ledger.aTaskVanishedUnderASession(null);
+        ledger.aTaskVanishedUnderASession("  ");
+
+        assertEquals(2, ledger.tasksVanishedUnderASession(),
+                "the bound this is held against counts deletions, so this must count tasks");
+    }
+
+    @Test
     @DisplayName("no other code is split: only the forbidden one carries two causes")
     void splitsNothingElse() {
         RefusalLedger ledger = new RefusalLedger();

@@ -1,6 +1,7 @@
 package loadrig.model.scenario;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
@@ -32,12 +33,16 @@ public final class RefusalLedger {
     /** The code an unowned action and a request without a valid token both answer with. */
     public static final int FORBIDDEN = 403;
 
+    /** The code a request naming a task the system no longer holds answers with. */
+    public static final int NAMES_NOTHING = 404;
+
     /** Below this the application answered; at it and above it the application refused. */
     private static final int FIRST_REFUSAL_CODE = 400;
 
     private final ConcurrentHashMap<Integer, LongAdder> counts = new ConcurrentHashMap<>();
     private final LongAdder forbiddenCarryingAToken = new LongAdder();
     private final LongAdder forbiddenCarryingNone = new LongAdder();
+    private final Set<String> vanishedUnderASession = ConcurrentHashMap.newKeySet();
 
     /**
      * Records the status one request was answered with. An answer below the first refusal code is
@@ -83,6 +88,33 @@ public final class RefusalLedger {
      */
     public long forbiddenCarryingNone() {
         return forbiddenCarryingNone.sum();
+    }
+
+    /**
+     * Records that a step acting on a task the registry handed it found the task gone: another
+     * session deleted it in the seconds between the pick and the request. The SUT confirms this
+     * as real user behaviour - a stale list row clicked after a delete - and a clean baseline may
+     * carry a handful, so the step does not fail the run over it and this is where the handful is
+     * counted.
+     *
+     * <p>The task is recorded, not the answer, and the tasks are held as a set. Several sessions
+     * can meet one deletion, and counting their answers would compare a number of events against
+     * the number of deletions the profile intends - two different things, one of which would
+     * spoil a run for a race the other says is allowed.
+     */
+    public void aTaskVanishedUnderASession(String taskId) {
+        if (taskId != null && !taskId.isBlank()) {
+            vanishedUnderASession.add(taskId);
+        }
+    }
+
+    /**
+     * How many distinct tasks were lost under a session. The harness holds this against what the
+     * profile intended to delete: a session can only lose a task somebody deleted, so more tasks
+     * lost than the profile meant to remove is not a race any more, and the capture says so.
+     */
+    public long tasksVanishedUnderASession() {
+        return vanishedUnderASession.size();
     }
 
     public long total() {

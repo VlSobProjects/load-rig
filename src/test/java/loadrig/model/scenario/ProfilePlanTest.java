@@ -82,7 +82,7 @@ class ProfilePlanTest {
                         new AccountPool.Member("manager-01", Role.MANAGER),
                         new AccountPool.Member("admin-01", Role.ADMINISTRATOR))),
                 new TaskRegistry(), new UserDirectory(), new StarvationLedger(),
-                profile.hotSetSkew(), A_RUN, A_PASSWORD);
+                new RefusalLedger(), profile.hotSetSkew(), A_RUN, A_PASSWORD);
 
         IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
                 () -> new ProfilePlan(A_STACK, profile, starving)
@@ -94,7 +94,7 @@ class ProfilePlanTest {
     private static ScenarioWiring poolWiring() {
         return new ScenarioWiring(new SessionRegistry(AccountPool.members()),
                 new TaskRegistry(), new UserDirectory(), new StarvationLedger(),
-                new LoadProfile.HotSetSkew(70, 80), A_RUN, A_PASSWORD);
+                new RefusalLedger(), new LoadProfile.HotSetSkew(70, 80), A_RUN, A_PASSWORD);
     }
 
     private static LoadProfile dayProfileWithPopulations(int workers, int managers,
