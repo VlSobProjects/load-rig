@@ -28,6 +28,15 @@ back are stated in [`docs/brief.md`](docs/brief.md). The ordered work is in
 
 The unit tests need no running SUT.
 
+Neither does validating a load profile: it parses the file, checks the population-equilibrium
+invariant and prints the intensities the profile implies, without applying any load. A broken
+profile is found before a stand window is spent on it.
+
+```bash
+./gradlew validateProfile                            # the repository's day profile
+./gradlew validateProfile -Dloadrig.profile=<file>   # any profile file
+```
+
 The transport smoke run does: it drives a running stack with a few virtual users, walks every
 element of the transport once and leaves a JTL result log under `results/`, outside version
 control.
@@ -38,8 +47,7 @@ control.
 ```
 
 It is not a capture and carries no load profile: it proves that the rig drives the application.
-The profiles, the run harness and the capture artifacts are later work items
-(`docs/roadmap.md`).
+The run harness and the capture artifacts are later work items (`docs/roadmap.md`).
 
 Provisioning the account pool also needs a running stack: it brings the stack to the configured
 pool through the administrator screens, walks each fresh account's forced password change and
@@ -53,7 +61,8 @@ proves every member's sign-in. It is idempotent - a stack already provisioned is
 
 | Path | What it holds |
 | --- | --- |
-| `src/main/java/loadrig/model` | The business scenarios, the step mix, the intensity profiles |
+| `src/main/java/loadrig/model` | The business scenarios, the step mix, the profile vocabulary |
+| `profiles/` | The load profiles: external JSON over the code-owned vocabulary, one file per variant |
 | `src/main/java/loadrig/registry` | The session registry and the task registry shared by the virtual users |
 | `src/main/java/loadrig/run` | The run harness: assembling a profile, executing it, leaving the artifacts |
 | `docs/` | Rules, brief, roadmap, decisions, sessions — see `docs/README.md` |
