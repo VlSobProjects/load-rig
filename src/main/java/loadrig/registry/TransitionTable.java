@@ -8,15 +8,26 @@ import loadrig.model.Role;
 import loadrig.model.SutSurface.Transition;
 
 /**
- * The task transition table of the system under test, mirrored as the rig's own fact: which
- * statuses each transition moves a task from, where it lands, and whose relation to the task it
- * demands.
+ * The transitions the rig drives, mirrored as its own fact: which statuses each one moves a task
+ * from, where it lands, and whose relation to the task it demands.
  *
- * <p>Derived from the scenario specification: the assignee finishes, returns or refuses an open
- * task; the creator approves finished work, accepts a refusal, answers a returned question by
- * handing the task out again, and puts settled work back into circulation; deletion belongs to
- * the creator and to the administrator and takes the task with it, whatever its status. Notes
- * are absent on purpose: a note follows visibility, not this table, and moves nothing.
+ * <p>Derived from the scenario specification's walks: the assignee finishes, returns or refuses an
+ * open task; the creator approves finished work, accepts a refusal, answers a returned question by
+ * handing the task out again, and puts settled work back into circulation; deletion belongs to the
+ * creator and to the administrator and takes the task with it, whatever its status. Notes are
+ * absent on purpose: a note follows visibility, not this table, and moves nothing.
+ *
+ * <p><strong>This is a subset of the SUT's closed transition table, not the whole of it.</strong>
+ * The specification the rig received on 2026-08-29 carries two rows the manager's walk never uses,
+ * and they are deliberately absent here: a reassignment of an open task, where the message is
+ * optional because it answers no question, and a return to work from the two statuses the creator
+ * has not yet reviewed. The load model was built without them - its mix and its arithmetic of two
+ * and a half transitions per settlement both assume this narrower set - so carrying them would add
+ * rules no step drives and disturb the equilibrium check for nothing. A subset never earns a
+ * refusal: every transition the registry permits is one the application offers. Whether their
+ * absence from the walk is a deliberate narrowing of the load model is asked of the SUT project
+ * through the exchange desk, and widening this table is that answer's business, not a defect to be
+ * fixed quietly.
  *
  * <p>Relations decide, not roles - a manager assigned a task by another manager finishes it as
  * its assignee. The one right a role owns is the administrator's right to delete.

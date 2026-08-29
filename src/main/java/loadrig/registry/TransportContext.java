@@ -37,7 +37,17 @@ public record TransportContext(List<CookieFact> cookies, String pageToken) {
      * session signed out instead of handing the failure to the next step.
      */
     public boolean carriesAToken() {
-        return pageToken != null && !pageToken.isBlank()
-                && !Correlation.EXTRACTION_FAILED.equals(pageToken);
+        return isAToken(pageToken);
+    }
+
+    /**
+     * Whether a scraped value is a token at all: present, not blank, and not the mark the
+     * correlation dictionary leaves where an extraction found nothing. Stated once and read from
+     * both sides, because the run's ledger asks the same question of a thread's own variable as
+     * the session registry asks of a context, and two spellings of one rule drift.
+     */
+    public static boolean isAToken(String scraped) {
+        return scraped != null && !scraped.isBlank()
+                && !Correlation.EXTRACTION_FAILED.equals(scraped);
     }
 }
