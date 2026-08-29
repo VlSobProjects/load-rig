@@ -55,6 +55,15 @@ public final class ManagerScenario implements Scenario {
     private static final int HANDS_OUT_AGAIN = 1;
     private static final int PUTS_BACK_TO_WORK = 1;
 
+    /** The reopen demands a reason the way a return and a refusal do; the stand refuses one without. */
+    private static final String REOPEN_REASON = "the settled work is needed again";
+
+    /**
+     * The hand-out-again is the creator's answer to the returned question, and the answer is the
+     * message: the stand demands it beside the assignee, refusing the bare reassignment.
+     */
+    private static final String ANSWER_TO_THE_QUESTION = "answered - proceed as discussed";
+
     /**
      * Every second created task is due inside the hot window, the rest later: the run must feed
      * both the hot set the skew converges on and the cold rest the skew occasionally reads, or
@@ -95,7 +104,7 @@ public final class ManagerScenario implements Scenario {
                 CommonSteps.movingATask(kit, wiring, PUTS_BACK_TO_WORK,
                         Transition.PUT_BACK_TO_WORK, sessionRole(),
                         ACTOR + " puts settled work back into circulation", LIST_SCOPE, LIST_SORT,
-                        null),
+                        REOPEN_REASON),
                 createsATask(kit, wiring),
                 runsAReport(kit, wiring),
                 CommonSteps.discussion(kit, wiring, STEP_WEIGHTS.get(StepKind.DISCUSSION),
@@ -133,7 +142,7 @@ public final class ManagerScenario implements Scenario {
             return true;
         };
         DslHttpSampler request = CommonSteps.transitionRequest(kit, name,
-                Transition.HAND_OUT_AGAIN, LIST_SCOPE, LIST_SORT, null)
+                Transition.HAND_OUT_AGAIN, LIST_SCOPE, LIST_SORT, ANSWER_TO_THE_QUESTION)
                 .param(SutSurface.TASK_ASSIGNEE_FIELD,
                         StepKit.variable(IterationSlots.ASSIGNEE_ID));
         request.children(jsr223PostProcessor(s -> {

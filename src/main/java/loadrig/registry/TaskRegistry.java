@@ -177,7 +177,12 @@ public final class TaskRegistry {
     private static boolean visibleTo(TaskFacts facts, String username, Role role) {
         return switch (role) {
             case MANAGER, ADMINISTRATOR -> true;
-            case WORKER -> username.equals(facts.assignee());
+            // A returned task leaves the worker's sight: it sits with the creator awaiting the
+            // answer, out of the assignee's queue, and the stand refuses the assignee's open of
+            // it. Every other status stays visible to the assignee - proven against the stand
+            // status by status.
+            case WORKER -> username.equals(facts.assignee())
+                    && facts.status() != TaskStatus.RETURNED;
         };
     }
 }
