@@ -47,7 +47,20 @@ control.
 ```
 
 It is not a capture and carries no load profile: it proves that the rig drives the application.
-The run harness and the capture artifacts are later work items (`docs/roadmap.md`).
+
+A profile run is a capture's injector side: it loads the stated profile file, holds the
+invariants, assembles the plan over the account pool and drives the stack with it. Each run lays
+its artifacts into a directory of its own under the results root, named by the profile and the
+run's UTC stamp: `load-profile.json` — what the run was meant to apply, with the computed target
+rates and the SUT version, written before the load starts; `samples.jtl` — the result log;
+`run-report.txt` — what the run realized, with the starvation ledger. A run with refused samples
+exits non-zero and leaves its artifacts in place.
+
+```bash
+./gradlew runProfile                                 # the repository's day profile
+./gradlew runProfile -Dloadrig.profile=<file>        # any profile file
+./gradlew runProfile -Dloadrig.sut.version=<version> # record what is under test; unknown otherwise
+```
 
 Provisioning the account pool also needs a running stack: it brings the stack to the configured
 pool through the administrator screens, walks each fresh account's forced password change and

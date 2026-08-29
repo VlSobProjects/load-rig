@@ -27,6 +27,7 @@ public final class RigConfiguration {
     static final String VIRTUAL_USERS_PROPERTY = "loadrig.smoke.virtualUsers";
     static final String ITERATIONS_PROPERTY = "loadrig.smoke.iterations";
     static final String PROVISIONED_PASSWORD_PROPERTY = "loadrig.provisioning.password";
+    static final String SUT_VERSION_PROPERTY = "loadrig.sut.version";
 
     private static final String DEFAULT_BASE_URL = "http://localhost:8080";
     private static final String DEFAULT_RESULTS_DIRECTORY = "results";
@@ -36,18 +37,29 @@ public final class RigConfiguration {
     /** Long enough for the application's own rule, which refuses anything shorter than eight. */
     private static final String DEFAULT_PROVISIONED_PASSWORD = "loadrig123!";
 
+    /**
+     * What the description artifact says when no version is stated. The stack does not publish a
+     * version the rig could read - not over HTTP and not as an image label - so the version is
+     * the operator's statement, and an unstated one is recorded as unknown rather than invented.
+     * Whether the SUT project can publish one is an open question on the exchange desk's agenda.
+     */
+    private static final String SUT_VERSION_UNKNOWN = "unknown";
+
     private final String baseUrl;
     private final Map<Role, Account> accounts;
     private final String provisionedPassword;
+    private final String sutVersion;
     private final Path resultsDirectory;
     private final int virtualUsers;
     private final int iterations;
 
     private RigConfiguration(String baseUrl, Map<Role, Account> accounts,
-            String provisionedPassword, Path resultsDirectory, int virtualUsers, int iterations) {
+            String provisionedPassword, String sutVersion, Path resultsDirectory,
+            int virtualUsers, int iterations) {
         this.baseUrl = baseUrl;
         this.accounts = accounts;
         this.provisionedPassword = provisionedPassword;
+        this.sutVersion = sutVersion;
         this.resultsDirectory = resultsDirectory;
         this.virtualUsers = virtualUsers;
         this.iterations = iterations;
@@ -62,6 +74,7 @@ public final class RigConfiguration {
                 property(BASE_URL_PROPERTY, DEFAULT_BASE_URL),
                 accounts,
                 property(PROVISIONED_PASSWORD_PROPERTY, DEFAULT_PROVISIONED_PASSWORD),
+                property(SUT_VERSION_PROPERTY, SUT_VERSION_UNKNOWN),
                 Path.of(property(RESULTS_DIRECTORY_PROPERTY, DEFAULT_RESULTS_DIRECTORY)),
                 number(VIRTUAL_USERS_PROPERTY, DEFAULT_VIRTUAL_USERS),
                 number(ITERATIONS_PROPERTY, DEFAULT_ITERATIONS));
@@ -77,6 +90,11 @@ public final class RigConfiguration {
 
     public String provisionedPassword() {
         return provisionedPassword;
+    }
+
+    /** The version of the SUT under test, as stated by the operator; unknown when unstated. */
+    public String sutVersion() {
+        return sutVersion;
     }
 
     public Path resultsDirectory() {

@@ -83,7 +83,14 @@ final class SessionSteps {
                 return;
             }
             CookieManager store = http.getCookieManager();
-            store.clear();
+            // Cookie by cookie, never store.clear(): clear() wipes every property of the
+            // running element - the policy and the implementation with the cookies - and the
+            // manager stops keeping what the answers set, which turns every sign-in into a
+            // refused token. JMeter's own iteration clearing replaces only the cookie list,
+            // and remove(int) is that operation's public form.
+            while (store.getCookieCount() > 0) {
+                store.remove(0);
+            }
             for (TransportContext.CookieFact fact : jar) {
                 store.add(new Cookie(fact.name(), fact.value(), fact.domain(), fact.path(),
                         fact.secure(), fact.expires()));

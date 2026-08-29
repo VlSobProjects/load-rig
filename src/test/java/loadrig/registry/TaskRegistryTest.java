@@ -128,6 +128,19 @@ class TaskRegistryTest {
     }
 
     @Test
+    void aReturnedTaskLeavesTheWorkersSight() {
+        registry.register(openTask("1", CREATOR, ASSIGNEE, false));
+        registry.applied(
+                registry.lease(Transition.RETURN_WITH_A_QUESTION, ASSIGNEE, Role.WORKER));
+
+        assertThrows(RegistryStarvedException.class,
+                () -> registry.toOpen(ASSIGNEE, Role.WORKER, false),
+                "a returned task sits with the creator, out of the assignee's queue");
+        assertEquals("1", registry.toOpen(CREATOR, Role.MANAGER, false).taskId(),
+                "the creator still sees the question they must answer");
+    }
+
+    @Test
     void theHotSetIsTheHotFlagWhileTheTaskIsOpen() {
         registry.register(openTask("1", CREATOR, ASSIGNEE, true));
 
