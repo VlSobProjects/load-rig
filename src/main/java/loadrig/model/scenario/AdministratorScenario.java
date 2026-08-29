@@ -28,6 +28,17 @@ public final class AdministratorScenario implements Scenario {
             StepKind.OPENING_ONE_TASK, 2,
             StepKind.DELETING_A_TASK, 1);
 
+    /**
+     * The administrator's one move is the deletion, and it is the whole deletion share of the
+     * mix. It stands outside the census: the deletion draws from every status of every task, so
+     * the only stand it starves on is one with no tasks at all.
+     */
+    static final Map<Transition, Integer> TRANSITION_WEIGHTS =
+            Map.of(Transition.DELETE, 1);
+
+    /** The role a session of this scenario acts in; the census reads it without wiring a plan. */
+    static final Role SESSION_ROLE = Role.ADMINISTRATOR;
+
     private static final String ACTOR = "the administrator";
     private static final Scope LIST_SCOPE = Scope.ALL;
     private static final Sort LIST_SORT = Sort.CREATED;
@@ -42,7 +53,7 @@ public final class AdministratorScenario implements Scenario {
                         STEP_WEIGHTS.get(StepKind.OPENING_ONE_TASK), sessionRole(),
                         ACTOR + " opens a task", LIST_SCOPE, LIST_SORT),
                 CommonSteps.movingATask(kit, wiring,
-                        STEP_WEIGHTS.get(StepKind.DELETING_A_TASK), Transition.DELETE,
+                        TRANSITION_WEIGHTS.get(Transition.DELETE), Transition.DELETE,
                         sessionRole(), ACTOR + " deletes a task", LIST_SCOPE, LIST_SORT, null)));
     }
 
@@ -53,7 +64,7 @@ public final class AdministratorScenario implements Scenario {
 
     @Override
     public Role sessionRole() {
-        return Role.ADMINISTRATOR;
+        return SESSION_ROLE;
     }
 
     @Override

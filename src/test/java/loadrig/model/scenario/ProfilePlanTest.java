@@ -76,32 +76,31 @@ class ProfilePlanTest {
     @Test
     void populationsThePoolCannotSeatAreRefusedBeforeAnyLoad() {
         LoadProfile profile = ProfileLoader.load(Path.of("profiles", "day.json"));
-        ScenarioWiring starving = new ScenarioWiring(
-                new SessionRegistry(List.of(
-                        new AccountPool.Member("worker-01", Role.WORKER),
-                        new AccountPool.Member("manager-01", Role.MANAGER),
-                        new AccountPool.Member("admin-01", Role.ADMINISTRATOR))),
-                new TaskRegistry(), new UserDirectory(), new StarvationLedger(),
-                new RefusalLedger(), profile.hotSetSkew(), A_RUN, A_PASSWORD);
+        List<AccountPool.Member> oneOfEachRole = List.of(
+                new AccountPool.Member("worker-01", Role.WORKER),
+                new AccountPool.Member("manager-01", Role.MANAGER),
+                new AccountPool.Member("admin-01", Role.ADMINISTRATOR));
 
         IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
-                () -> new ProfilePlan(A_STACK, profile, starving)
-                        .plan("results", "a-run.jtl"));
+                () -> SeatedAccounts.of(profile, oneOfEachRole));
+
         assertTrue(refusal.getMessage().contains("starve"),
                 "the refusal must state the consequence: " + refusal.getMessage());
     }
 
     private static ScenarioWiring poolWiring() {
+        LoadProfile profile = ProfileLoader.load(Path.of("profiles", "day.json"));
         return new ScenarioWiring(new SessionRegistry(AccountPool.members()),
-                new TaskRegistry(), new UserDirectory(), new StarvationLedger(),
-                new RefusalLedger(), new LoadProfile.HotSetSkew(70, 80), A_RUN, A_PASSWORD);
+                SeatedAccounts.of(profile), new TaskRegistry(), new UserDirectory(),
+                new StarvationLedger(), new RefusalLedger(), profile.hotSetSkew(), A_RUN,
+                A_PASSWORD);
     }
 
     private static LoadProfile dayProfileWithPopulations(int workers, int managers,
             int administrators, int discussion) {
         return new LoadProfile("day", workers + managers + administrators + discussion, 30, 10,
                 new LoadProfile.ThinkTime(3, 7), new StepMix(37, 22, 13, 12, 10, 5, 1),
-                new LoadProfile.HotSetSkew(70, 80), 50000,
+                new LoadProfile.HotSetSkew(70, 80),
                 Map.of(ScenarioName.WORKER, workers, ScenarioName.MANAGER, managers,
                         ScenarioName.ADMINISTRATOR, administrators,
                         ScenarioName.DISCUSSION, discussion));

@@ -9,10 +9,14 @@ import java.util.Map;
  * may state; the numbers are the file's.
  *
  * <p>Every field is validated here, so that a profile object that exists is a profile the run
- * may trust. What is deliberately absent: intensities. The creations, settlements, deletions
- * and notes per minute are computed from the mix, the users and the think time by
- * {@link EquilibriumCheck}, never stated, because two sources of one fact drift apart and no
- * reader of the capture can tell which one the run obeyed.
+ * may trust. What is deliberately absent: intensities. The creations, settlements, deletions and
+ * notes per minute are computed from the scenarios' own weights, the populations and the think
+ * time, never stated, because two sources of one fact drift apart and no reader of the capture can
+ * tell which one the run obeyed.
+ *
+ * <p>Absent for a second reason: the volume of the stand. A profile states what a run applies, not
+ * what the stand contains, and the number of tasks a stand holds is measured before the window by
+ * the warm start and published from that measurement (DR-6).
  */
 public record LoadProfile(
         String name,
@@ -22,7 +26,6 @@ public record LoadProfile(
         ThinkTime thinkTime,
         StepMix stepMix,
         HotSetSkew hotSetSkew,
-        int seededVolume,
         Map<ScenarioName, Integer> scenarioPopulation) {
 
     /** The pause a virtual user thinks between steps, drawn per step from these bounds. */
@@ -76,7 +79,6 @@ public record LoadProfile(
                     + rampSeconds + " seconds");
         }
         requirePositive("steadyWindowMinutes", steadyWindowMinutes);
-        requirePositive("seededVolume", seededVolume);
         scenarioPopulation = populationOfEveryScenario(scenarioPopulation, virtualUsers);
     }
 

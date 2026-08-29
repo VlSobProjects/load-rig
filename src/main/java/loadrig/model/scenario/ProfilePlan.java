@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import loadrig.model.Role;
-import loadrig.model.profile.EquilibriumCheck;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ScenarioName;
 import loadrig.model.step.Step;
@@ -27,8 +26,10 @@ import us.abstracta.jmeter.javadsl.core.threadgroups.BaseThreadGroup.ThreadGroup
  * The test plan of one profile: every scheduling number - the populations, the ramp, the steady
  * window, the think-time bounds, the skew - comes from the loaded profile, and every step comes
  * from the scenarios behind the closed names. The invariants are held before the plan is even
- * assembled: the population equilibrium, the survival of the mix, and the seating of the
- * populations on the account pool, each refusing loudly before any load.
+ * assembled: the census the profile's population needs and the survival of the mix, each refusing
+ * loudly before any load. The third - that the populations are seatable on the pool at all - was
+ * held before the wiring existed, by {@link SeatedAccounts}, which is where the accounts of this
+ * run come from.
  *
  * <p>One thread group per populated scenario, named with the scenario's own key, so the thread
  * name of every sample in the result log states which scenario produced it.
@@ -46,9 +47,8 @@ public final class ProfilePlan {
     }
 
     public DslTestPlan plan(String jtlDirectory, String jtlFileName) {
-        EquilibriumCheck.check(profile);
+        WarmStartCensus.of(profile, wiring.seated()).check();
         MixSurvivalCheck.check(profile);
-        seatThePopulations();
         StepKit kit = new StepKit(baseUrl, profile.thinkTime());
         Map<ScenarioName, Scenario> scenarios = Scenarios.all(kit, wiring);
         List<TestPlanChild> children = new ArrayList<>();
@@ -100,29 +100,4 @@ public final class ProfilePlan {
                 TransportContext.isAToken(s.vars.get(SessionSteps.SESSION_TOKEN_VARIABLE))));
     }
 
-    /**
-     * Every population must be seatable on the pool: the discussion takes up manager sessions,
-     * so it counts against the managers. Refusing here is what keeps a misconfigured run from
-     * spending a stand window to learn that its threads starve.
-     */
-    private void seatThePopulations() {
-        Map<ScenarioName, Integer> population = profile.scenarioPopulation();
-        requireSeats(Role.WORKER, population.get(ScenarioName.WORKER),
-                ScenarioName.WORKER.key());
-        requireSeats(Role.MANAGER,
-                population.get(ScenarioName.MANAGER) + population.get(ScenarioName.DISCUSSION),
-                ScenarioName.MANAGER.key() + " and " + ScenarioName.DISCUSSION.key());
-        requireSeats(Role.ADMINISTRATOR, population.get(ScenarioName.ADMINISTRATOR),
-                ScenarioName.ADMINISTRATOR.key());
-    }
-
-    private void requireSeats(Role role, int needed, String population) {
-        int seats = wiring.sessions().namesOf(role).size();
-        if (needed > seats) {
-            throw new IllegalArgumentException("the " + population + " population needs "
-                    + needed + " " + role + " session(s) at once while the pool holds " + seats
-                    + "; the profile and the account pool disagree, and a run under them would"
-                    + " starve instead of loading");
-        }
-    }
 }

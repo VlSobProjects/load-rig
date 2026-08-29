@@ -77,7 +77,7 @@ What the rig absorbs, and at what price — the adaptation ledger:
 | Numbers: mix, skew, think times, volumes, populations | a profile file | none in code, no rebuild |
 | A new profile variant over the same vocabulary | a new profile file | none in code |
 | New weights or parameters of an existing scenario | a vocabulary key and a typed parameter | small: code and profile in lockstep |
-| Addresses, form fields, page marks, same behaviour | the surface and the correlation dictionary; the conformance walk proves it | small, localized by construction |
+| Addresses, form fields, page marks, the list's own columns and status words, same behaviour | the surface, the correlation dictionary and the reading of the list page; the conformance walk and the captured answers prove them | small, localized by construction |
 | A new or reshaped business flow | a scenario class on the step kit, a name in the closed registry | a session |
 | A changed transition table or status set | the mirrored table and its tests | a session |
 | A changed transport model — an API instead of rendered pages, tokens instead of form sessions | the transport layer whole; DR-1's answer-shape rule and the scraped-token mechanics fall | **the boundary: past it the rig is rewritten, not adapted** |

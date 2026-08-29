@@ -28,9 +28,10 @@ back are stated in [`docs/brief.md`](docs/brief.md). The ordered work is in
 
 The unit tests need no running SUT.
 
-Neither does validating a load profile: it parses the file, checks the population-equilibrium
-invariant and prints the intensities the profile implies, without applying any load. A broken
-profile is found before a stand window is spent on it.
+Neither does validating a load profile: it parses the file, prints the rates the profile implies
+and the census a warm start would have to establish before the window, bucket by bucket, and
+refuses a profile whose population no warm start could bring about — all without applying any
+load. A broken profile is found before a stand window is spent on it.
 
 ```bash
 ./gradlew validateProfile                            # the repository's day profile
@@ -49,12 +50,18 @@ control.
 It is not a capture and carries no load profile: it proves that the rig drives the application.
 
 A profile run is a capture's injector side: it loads the stated profile file, holds the
-invariants, assembles the plan over the account pool and drives the stack with it. Each run lays
-its artifacts into a directory of its own under the results root, named by the profile and the
-run's UTC stamp: `load-profile.json` — what the run was meant to apply, with the computed target
-rates and the SUT version, written before the load starts; `samples.jtl` — the result log;
-`run-report.txt` — what the run realized, with the starvation ledger. A run with refused samples
-exits non-zero and leaves its artifacts in place.
+invariants, assembles the plan over the account pool, brings the stand to the census the profile
+needs and drives the stack. The warm start comes before the window and outside the test plan: it
+reads what the stand already holds from the list page ordered by due date and creates only the
+difference, so the mix holds from the first minute and no sample of the capture is spent
+establishing the population. Each run lays its artifacts into a directory of its own under the
+results root, named by the profile and the run's UTC stamp: `load-profile.json` — what the run was
+meant to apply, with the computed target rates, the census, the measured volume of the stand and
+the SUT version, written before the load starts; `samples.jtl` — the result log; `run-report.txt`
+— what the run realized, with the starvation ledger. A run with refused samples exits non-zero and
+leaves its artifacts in place.
+
+The warm start acts as the accounts the run signs in with, so the pool is provisioned first.
 
 ```bash
 ./gradlew runProfile                                 # the repository's day profile
@@ -88,7 +95,8 @@ They come from the SUT project's specifications and are binding; the brief carri
 - The generator runs on the cores the core map gives it and takes neither the system's cores nor
   the collectors' cores.
 - The load is shaped like the business, never like an attack: the mix, the skew and the think
-  times are part of the model, and the population stays in equilibrium inside a capture window.
+  times are part of the model, and the population of work the steps act on holds inside a capture
+  window — established before it opens rather than waited for.
 - The operational endpoints of the stack are never driven.
 - The JTL result log is the canonical injector export of a capture; live push of raw samples into
   a time-series store is deliberately absent.

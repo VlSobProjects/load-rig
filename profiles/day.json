@@ -20,7 +20,6 @@
     "taskOpensPercent": 70,
     "notesPercent": 80
   },
-  "seededVolume": 50000,
   "scenarioPopulation": {
     "worker": 5,
     "manager": 3,

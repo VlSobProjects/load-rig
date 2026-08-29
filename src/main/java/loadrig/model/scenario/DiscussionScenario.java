@@ -5,6 +5,7 @@ import java.util.Map;
 import loadrig.model.Role;
 import loadrig.model.SutSurface.Scope;
 import loadrig.model.SutSurface.Sort;
+import loadrig.model.SutSurface.Transition;
 import loadrig.model.profile.ScenarioName;
 import loadrig.model.step.Step;
 import loadrig.model.step.StepKind;
@@ -29,6 +30,16 @@ public final class DiscussionScenario implements Scenario {
             StepKind.LOOKING_AT_A_LIST, 2,
             StepKind.OPENING_ONE_TASK, 2,
             StepKind.DISCUSSION, 6);
+
+    /** The discussion moves nothing: it reads and it writes notes, and a note moves no task. */
+    static final Map<Transition, Integer> TRANSITION_WEIGHTS = Map.of();
+
+    /**
+     * The role a session of this scenario acts in. It takes up manager sessions, which is why the
+     * manager transitions of a run spread over the discussion's account too, and why the census
+     * counts its population among the managers.
+     */
+    static final Role SESSION_ROLE = Role.MANAGER;
 
     private static final String ACTOR = "the discussion";
 
@@ -58,7 +69,7 @@ public final class DiscussionScenario implements Scenario {
 
     @Override
     public Role sessionRole() {
-        return Role.MANAGER;
+        return SESSION_ROLE;
     }
 
     @Override

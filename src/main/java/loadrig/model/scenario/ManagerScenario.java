@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import loadrig.model.Correlation;
+import loadrig.model.HotWindow;
 import loadrig.model.Role;
 import loadrig.model.SutSurface;
 import loadrig.model.SutSurface.Scope;
@@ -47,13 +48,17 @@ public final class ManagerScenario implements Scenario {
     /**
      * The split of the manager's moves, summing to the move weight: settling dominates, the
      * answer to a returned question and the reopening of settled work are rare. Together with
-     * the worker's split this realizes about the specification's two and a half transitions per
-     * settlement.
+     * the worker's split this is what realizes the specification's settlements, and the census
+     * the warm start brings a stand to is computed from exactly these numbers.
      */
-    private static final int APPROVES = 8;
-    private static final int ACKNOWLEDGES = 2;
-    private static final int HANDS_OUT_AGAIN = 1;
-    private static final int PUTS_BACK_TO_WORK = 1;
+    static final Map<Transition, Integer> TRANSITION_WEIGHTS = Map.of(
+            Transition.APPROVE, 8,
+            Transition.ACCEPT_THE_REFUSAL, 2,
+            Transition.HAND_OUT_AGAIN, 1,
+            Transition.PUT_BACK_TO_WORK, 1);
+
+    /** The role a session of this scenario acts in; the census reads it without wiring a plan. */
+    static final Role SESSION_ROLE = Role.MANAGER;
 
     /** The reopen demands a reason the way a return and a refusal do; the stand refuses one without. */
     private static final String REOPEN_REASON = "the settled work is needed again";
@@ -67,14 +72,10 @@ public final class ManagerScenario implements Scenario {
     /**
      * Every second created task is due inside the hot window, the rest later: the run must feed
      * both the hot set the skew converges on and the cold rest the skew occasionally reads, or
-     * one of the two starves and the skew has nothing to choose between.
+     * one of the two starves and the skew has nothing to choose between. The warm start stocks
+     * the census in the same share, so the window opens on the population the run maintains.
      */
-    private static final int CREATED_DUE_SOON_PERCENT = 50;
-
-    /** The hot window of the specification: open tasks due within three days are the hot set. */
-    private static final String DUE_SOON = "P3D";
-
-    private static final String DUE_LATER = "P14D";
+    static final int CREATED_DUE_SOON_PERCENT = 50;
 
     /**
      * The window a manager asks a report about: last week, about one worker. A range drawn at
@@ -96,12 +97,17 @@ public final class ManagerScenario implements Scenario {
                 CommonSteps.openingOneTask(kit, wiring,
                         STEP_WEIGHTS.get(StepKind.OPENING_ONE_TASK), sessionRole(),
                         ACTOR + " opens a task", LIST_SCOPE, LIST_SORT),
-                CommonSteps.movingATask(kit, wiring, APPROVES, Transition.APPROVE, sessionRole(),
-                        ACTOR + " approves finished work", LIST_SCOPE, LIST_SORT, null),
-                CommonSteps.movingATask(kit, wiring, ACKNOWLEDGES, Transition.ACCEPT_THE_REFUSAL,
-                        sessionRole(), ACTOR + " accepts a refusal", LIST_SCOPE, LIST_SORT, null),
+                CommonSteps.movingATask(kit, wiring,
+                        TRANSITION_WEIGHTS.get(Transition.APPROVE), Transition.APPROVE,
+                        sessionRole(), ACTOR + " approves finished work", LIST_SCOPE, LIST_SORT,
+                        null),
+                CommonSteps.movingATask(kit, wiring,
+                        TRANSITION_WEIGHTS.get(Transition.ACCEPT_THE_REFUSAL),
+                        Transition.ACCEPT_THE_REFUSAL, sessionRole(),
+                        ACTOR + " accepts a refusal", LIST_SCOPE, LIST_SORT, null),
                 handsATaskOutAgain(kit, wiring),
-                CommonSteps.movingATask(kit, wiring, PUTS_BACK_TO_WORK,
+                CommonSteps.movingATask(kit, wiring,
+                        TRANSITION_WEIGHTS.get(Transition.PUT_BACK_TO_WORK),
                         Transition.PUT_BACK_TO_WORK, sessionRole(),
                         ACTOR + " puts settled work back into circulation", LIST_SCOPE, LIST_SORT,
                         REOPEN_REASON),
@@ -162,7 +168,8 @@ public final class ManagerScenario implements Scenario {
                 wiring.tasks().released(lease);
             }
         }));
-        return kit.step(HANDS_OUT_AGAIN, StepKind.MOVING_A_TASK, gate, request);
+        return kit.step(TRANSITION_WEIGHTS.get(Transition.HAND_OUT_AGAIN), StepKind.MOVING_A_TASK,
+                gate, request);
     }
 
     /**
@@ -181,7 +188,8 @@ public final class ManagerScenario implements Scenario {
             }
             boolean dueSoon = CommonSteps.draw(CREATED_DUE_SOON_PERCENT);
             vars.put(IterationSlots.TASK_TITLE, wiring.nextTaskTitle());
-            vars.put(IterationSlots.DUE_SHIFT, dueSoon ? DUE_SOON : DUE_LATER);
+            vars.put(IterationSlots.DUE_SHIFT,
+                    dueSoon ? HotWindow.DUE_INSIDE : HotWindow.DUE_OUTSIDE);
             vars.put(IterationSlots.CREATED_HOT, String.valueOf(dueSoon));
             vars.put(IterationSlots.ASSIGNEE_NAME, assignee);
             vars.put(IterationSlots.ASSIGNEE_ID, wiring.directory().idOf(assignee).orElseThrow());
@@ -247,10 +255,16 @@ public final class ManagerScenario implements Scenario {
                 gate, opensTheForm, runsIt);
     }
 
-    /** A worker whose identity an answer has already offered, drawn at random among them. */
+    /**
+     * A worker of this run whose identity an answer has already offered, drawn at random among
+     * them. The draw is over the accounts the run occupies and not over the whole pool: the pool
+     * is sized to the ceiling of the load model, so handing work to every account in it would send
+     * most of a run's creations to people nobody is signed in as - work created and never touched,
+     * while the transitions starve for want of open tasks.
+     */
     private static String knownWorker(ScenarioWiring wiring) {
         List<String> known = wiring.directory()
-                .knownAmong(wiring.sessions().namesOf(Role.WORKER));
+                .knownAmong(wiring.seated().names(Role.WORKER));
         if (known.isEmpty()) {
             return null;
         }
@@ -264,7 +278,7 @@ public final class ManagerScenario implements Scenario {
 
     @Override
     public Role sessionRole() {
-        return Role.MANAGER;
+        return SESSION_ROLE;
     }
 
     @Override

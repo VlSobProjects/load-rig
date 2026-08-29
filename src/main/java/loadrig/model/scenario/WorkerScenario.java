@@ -34,11 +34,16 @@ public final class WorkerScenario implements Scenario {
     /**
      * The split of the worker's moves, summing to the move weight: most held work is finished,
      * and a question and a refusal each take a small, equal share. Together with the manager's
-     * split this realizes about the specification's two and a half transitions per settlement.
+     * split this is what realizes the specification's settlements, and the census the warm start
+     * brings a stand to is computed from exactly these numbers.
      */
-    private static final int FINISHES = 10;
-    private static final int RETURNS_WITH_A_QUESTION = 2;
-    private static final int REFUSES = 2;
+    static final Map<Transition, Integer> TRANSITION_WEIGHTS = Map.of(
+            Transition.FINISH, 10,
+            Transition.RETURN_WITH_A_QUESTION, 2,
+            Transition.REFUSE, 2);
+
+    /** The role a session of this scenario acts in; the census reads it without wiring a plan. */
+    static final Role SESSION_ROLE = Role.WORKER;
 
     /** A question is required on a return, a reason on a refusal; a finish needs no words. */
     private static final String QUESTION = "what should be done about the open points?";
@@ -61,14 +66,18 @@ public final class WorkerScenario implements Scenario {
                         ACTOR, LIST_SCOPE, LIST_SORT,
                         CommonSteps.pickVisibleTask(wiring, sessionRole(),
                                 wiring.skew().notesPercent(), ACTOR + " reads the notes")),
-                CommonSteps.movingATask(kit, wiring, FINISHES, Transition.FINISH, sessionRole(),
-                        ACTOR + " finishes a task", LIST_SCOPE, LIST_SORT, null),
-                CommonSteps.movingATask(kit, wiring, RETURNS_WITH_A_QUESTION,
+                CommonSteps.movingATask(kit, wiring,
+                        TRANSITION_WEIGHTS.get(Transition.FINISH), Transition.FINISH,
+                        sessionRole(), ACTOR + " finishes a task", LIST_SCOPE, LIST_SORT, null),
+                CommonSteps.movingATask(kit, wiring,
+                        TRANSITION_WEIGHTS.get(Transition.RETURN_WITH_A_QUESTION),
                         Transition.RETURN_WITH_A_QUESTION, sessionRole(),
                         ACTOR + " returns a task with a question", LIST_SCOPE, LIST_SORT,
                         QUESTION),
-                CommonSteps.movingATask(kit, wiring, REFUSES, Transition.REFUSE, sessionRole(),
-                        ACTOR + " refuses a task", LIST_SCOPE, LIST_SORT, REFUSAL_REASON)));
+                CommonSteps.movingATask(kit, wiring,
+                        TRANSITION_WEIGHTS.get(Transition.REFUSE), Transition.REFUSE,
+                        sessionRole(), ACTOR + " refuses a task", LIST_SCOPE, LIST_SORT,
+                        REFUSAL_REASON)));
     }
 
     @Override
@@ -78,7 +87,7 @@ public final class WorkerScenario implements Scenario {
 
     @Override
     public Role sessionRole() {
-        return Role.WORKER;
+        return SESSION_ROLE;
     }
 
     @Override
