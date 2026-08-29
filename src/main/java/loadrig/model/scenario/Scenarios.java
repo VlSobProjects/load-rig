@@ -3,6 +3,8 @@ package loadrig.model.scenario;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import loadrig.model.Role;
+import loadrig.model.SutSurface.Transition;
 import loadrig.model.profile.ScenarioName;
 import loadrig.model.step.Step;
 import loadrig.model.step.StepKind;
@@ -45,6 +47,63 @@ public final class Scenarios {
         weights.put(ScenarioName.ADMINISTRATOR, AdministratorScenario.STEP_WEIGHTS);
         weights.put(ScenarioName.DISCUSSION, DiscussionScenario.STEP_WEIGHTS);
         return Map.copyOf(weights);
+    }
+
+    /**
+     * The transition weights every scenario states, held against its own step weights: the moves
+     * of a scenario must sum to the move share of its day, and its deletions to its deletion
+     * share. What reads them is the census the warm start brings a stand to, so a scenario that
+     * moved tasks the mix does not account for would have the census stock for a demand no
+     * capture describes.
+     */
+    public static Map<ScenarioName, Map<Transition, Integer>> transitionWeights() {
+        EnumMap<ScenarioName, Map<Transition, Integer>> weights =
+                new EnumMap<>(ScenarioName.class);
+        weights.put(ScenarioName.WORKER, WorkerScenario.TRANSITION_WEIGHTS);
+        weights.put(ScenarioName.MANAGER, ManagerScenario.TRANSITION_WEIGHTS);
+        weights.put(ScenarioName.ADMINISTRATOR, AdministratorScenario.TRANSITION_WEIGHTS);
+        weights.put(ScenarioName.DISCUSSION, DiscussionScenario.TRANSITION_WEIGHTS);
+        Map<ScenarioName, Map<StepKind, Integer>> steps = stepWeights();
+        weights.forEach((name, table) -> holdingTheMoveShares(name, table, steps.get(name)));
+        return Map.copyOf(weights);
+    }
+
+    /**
+     * The role each scenario's sessions act in, read without wiring a plan: the census is computed
+     * before anything is built, and it must know whose accounts a transition's demand lands on.
+     */
+    public static Map<ScenarioName, Role> sessionRoles() {
+        EnumMap<ScenarioName, Role> roles = new EnumMap<>(ScenarioName.class);
+        roles.put(ScenarioName.WORKER, WorkerScenario.SESSION_ROLE);
+        roles.put(ScenarioName.MANAGER, ManagerScenario.SESSION_ROLE);
+        roles.put(ScenarioName.ADMINISTRATOR, AdministratorScenario.SESSION_ROLE);
+        roles.put(ScenarioName.DISCUSSION, DiscussionScenario.SESSION_ROLE);
+        return Map.copyOf(roles);
+    }
+
+    private static void holdingTheMoveShares(ScenarioName name,
+            Map<Transition, Integer> transitions, Map<StepKind, Integer> steps) {
+        int moves = 0;
+        int deletions = 0;
+        for (Map.Entry<Transition, Integer> weighted : transitions.entrySet()) {
+            if (weighted.getKey() == Transition.DELETE) {
+                deletions += weighted.getValue();
+            } else {
+                moves += weighted.getValue();
+            }
+        }
+        requireShare(name, StepKind.MOVING_A_TASK, moves, steps);
+        requireShare(name, StepKind.DELETING_A_TASK, deletions, steps);
+    }
+
+    private static void requireShare(ScenarioName name, StepKind kind, int stated,
+            Map<StepKind, Integer> steps) {
+        int share = steps.getOrDefault(kind, 0);
+        if (stated != share) {
+            throw new IllegalStateException("the " + name.key() + " scenario weights " + stated
+                    + " against " + kind + " through its transitions while its step table states "
+                    + share + "; the two tables state one fact and must state it once");
+        }
     }
 
     /**

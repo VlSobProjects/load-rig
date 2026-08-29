@@ -18,11 +18,12 @@ capture extraction and the triage logic all belong to the other two projects.
 ## The artifacts a run leaves
 
 - **The load-profile description** — what the run was meant to apply: operations, target rates,
-  ramp, and the version of the SUT under test, read from the stand's information endpoint once
-  before the window opens — outside the task surface and outside the result log, so that asking
-  costs the capture no sample — and recorded as unknown only when the stand does not answer;
-  authored per variant, JSON, written before the load starts so a dying injector still leaves
-  it.
+  ramp, the population under the load — the census the profile needed, and the number of tasks the
+  stand was measured to hold before the window — and the version of the SUT under test, read from
+  the stand's information endpoint once before the window opens — outside the task surface and
+  outside the result log, so that asking costs the capture no sample — and recorded as unknown only
+  when the stand does not answer; authored per variant, JSON, written before the load starts so a
+  dying injector still leaves it.
 - **The JTL result log** — the canonical injector export, fixed by the workflow-engine decision
   of 2026-08-28: per-sample timestamped records from which achieved intensity over time, a flood
   of one operation and the moment the injector's own data stops are all computable. The
@@ -56,7 +57,11 @@ configuration, never implicit constants.
 - **The profile discipline.** The mix, the population equilibrium (creations balanced by
   settlements), the hot-set skew and the think times are part of the model; the four false
   findings a break-it profile would produce are listed in the specification and each one is a
-  named anti-requirement of this project.
+  named anti-requirement of this project. The equilibrium is a property of the working set — the
+  tasks the steps may act on — and the rig holds it by establishing that population before the
+  window, stocking each bucket for the drain the window causes, and keeping the run's work among
+  the accounts the run occupies rather than the whole pool; what the window adds to the table
+  itself is published as a fact of the capture, against the volume the stand was measured to hold.
 - **The refusal codes.** The task surface answers exactly five, and the list is closed: a request
   the surface never produced, an action the actor does not own, a name that matches nothing, an
   action the current status does not offer, and a required field left blank. A triage that
@@ -74,7 +79,11 @@ configuration, never implicit constants.
   stand. The pool's composition is this project's statement and that item's input, settled through
   the desk before it runs. There is no manifest of task identities and there will be none — no
   user of the application holds one — so the rig learns the stand from the list page ordered by
-  due date, which is the intended path and not a workaround.
+  due date, which is the intended path and not a workaround. Until the seeding lands, a run brings
+  about the population its own profile needs: the census is computed per bucket and a warm start
+  reads what the stand holds and creates the difference, before the window and outside the result
+  log (DR-6). It degenerates to pure reading on a seeded stand, so the seeding costs it no
+  rewrite.
 - **The service levels.** Chosen, not measured, and a calibration lever: fixed before a
   campaign, recorded with every capture, held across the baseline and the faulted run alike.
 

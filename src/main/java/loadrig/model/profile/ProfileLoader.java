@@ -32,7 +32,6 @@ public final class ProfileLoader {
             ThinkTimeDocument thinkTime,
             StepMixDocument stepMix,
             HotSetSkewDocument hotSetSkew,
-            Integer seededVolume,
             Map<String, Integer> scenarioPopulation) {
     }
 
@@ -92,7 +91,6 @@ public final class ProfileLoader {
                 new LoadProfile.HotSetSkew(
                         required(skew.taskOpensPercent(), "hotSetSkew.taskOpensPercent"),
                         required(skew.notesPercent(), "hotSetSkew.notesPercent")),
-                required(document.seededVolume(), "seededVolume"),
                 populationOf(required(document.scenarioPopulation(), "scenarioPopulation")));
     }
 

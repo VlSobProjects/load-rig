@@ -9,14 +9,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 import loadrig.model.AccountPool;
-import loadrig.model.profile.EquilibriumCheck;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.scenario.MixSurvivalCheck;
 import loadrig.model.scenario.ProfilePlan;
 import loadrig.model.scenario.RefusalLedger;
+import loadrig.model.scenario.ScenarioDemand;
 import loadrig.model.scenario.ScenarioWiring;
+import loadrig.model.scenario.SeatedAccounts;
 import loadrig.model.scenario.StarvationLedger;
+import loadrig.model.scenario.WarmStartCensus;
 import loadrig.registry.SessionRegistry;
 import loadrig.registry.TaskRegistry;
 import loadrig.registry.UserDirectory;
@@ -26,10 +28,14 @@ import us.abstracta.jmeter.javadsl.core.engines.EmbeddedJmeterEngine;
 
 /**
  * The run harness: loads the stated profile, holds the invariants, assembles the plan over the
- * account pool and drives the stack with it, laying the capture artifacts into a directory of
- * this run's own - the load-profile description, the JTL result log and the run report. One
- * directory is one run; the capture consumes it whole and never pairs files by guessing at
- * names.
+ * account pool, brings the stand to the population the profile needs and drives the stack with it,
+ * laying the capture artifacts into a directory of this run's own - the load-profile description,
+ * the JTL result log and the run report. One directory is one run; the capture consumes it whole
+ * and never pairs files by guessing at names.
+ *
+ * <p>The warm start runs before the window and outside the test plan (DR-6), so the result log
+ * holds the window alone and the mix holds from its first minute instead of building up while the
+ * registry learns the stand.
  *
  * <p>The artifacts stay on disk whatever the run's outcome, because a spoiled run is evidence
  * too; a run with refused samples still says so loudly and exits non-zero, so that a stand
@@ -57,20 +63,26 @@ public final class ProfileRun {
         String runStamp = ZonedDateTime.now(ZoneOffset.UTC).format(RUN_STAMP);
 
         LoadProfile profile;
-        EquilibriumCheck.Intensities intensities;
+        ScenarioDemand demand;
+        WarmStartCensus census;
         StarvationLedger starvation = new StarvationLedger();
         RefusalLedger refusals = new RefusalLedger();
+        TaskRegistry tasks = new TaskRegistry();
+        UserDirectory directory = new UserDirectory();
         DslTestPlan plan;
         Path runDirectory;
         try {
             profile = ProfileLoader.load(profileFile);
-            intensities = EquilibriumCheck.check(profile);
+            demand = ScenarioDemand.of(profile);
             MixSurvivalCheck.check(profile);
+            SeatedAccounts seated = SeatedAccounts.of(profile);
+            census = WarmStartCensus.of(profile, seated);
+            census.check();
             runDirectory = configuration.resultsDirectory().toAbsolutePath()
                     .resolve(profile.name() + "-" + runStamp);
             ScenarioWiring wiring = new ScenarioWiring(
-                    new SessionRegistry(AccountPool.members()),
-                    new TaskRegistry(), new UserDirectory(), starvation, refusals,
+                    new SessionRegistry(AccountPool.members()), seated,
+                    tasks, directory, starvation, refusals,
                     profile.hotSetSkew(), runStamp, configuration.provisionedPassword());
             plan = new ProfilePlan(configuration.baseUrl(), profile, wiring)
                     .plan(runDirectory.toString(), SAMPLES_FILE);
@@ -80,13 +92,25 @@ public final class ProfileRun {
             return;
         }
 
+        // The population the profile needs, established before the window and outside the test
+        // plan: the registry starts the run knowing the stand, and no sample of the capture is
+        // spent bringing the stand about (DR-6).
+        System.out.println("the census of the profile \"" + profile.name() + "\" is "
+                + census.tasks() + " task(s) over " + census.buckets().size() + " bucket(s)");
+        WarmStart.Result warmStart = new WarmStart(configuration.baseUrl(),
+                configuration.provisionedPassword(), runStamp, census, tasks, directory)
+                .bringAbout();
+        System.out.println("the stand holds " + warmStart.tasksOnTheStand() + " task(s); the warm"
+                + " start read " + warmStart.read() + " of them and created "
+                + warmStart.created());
+
         // Asked before the window opens and outside the test plan, so the description carries a
         // version the stand itself named and the capture pays no sample for the question.
         String sutVersion = configuration.statedSutVersion()
                 .orElseGet(() -> SutVersion.askTheStand(configuration.baseUrl()));
 
         Files.createDirectories(runDirectory);
-        LoadProfileDescription.of(profile, intensities, runStamp, sutVersion)
+        LoadProfileDescription.of(profile, demand, census, warmStart, runStamp, sutVersion)
                 .writeTo(runDirectory.resolve(DESCRIPTION_FILE));
 
         System.out.println("driving " + configuration.baseUrl() + " under the profile \""
@@ -97,7 +121,8 @@ public final class ProfileRun {
 
         TestPlanStats stats = plan.runIn(new EmbeddedJmeterEngine());
 
-        String report = report(profile, sutVersion, runStamp, stats, starvation, refusals);
+        String report = report(profile, census, warmStart, sutVersion, runStamp, stats, starvation,
+                refusals);
         System.out.println(report);
         Files.writeString(runDirectory.resolve(REPORT_FILE), report);
 
@@ -109,7 +134,7 @@ public final class ProfileRun {
                     + REPORT_FILE + " and the log before trusting it");
         }
         long vanished = refusals.tasksVanishedUnderASession();
-        long intended = intendedDeletions(profile, intensities);
+        long intended = intendedDeletions(profile, demand);
         if (vanished > intended) {
             throw new IOException("the run lost " + vanished + " task(s) under a session while"
                     + " the profile intended to delete " + intended + " over the window; a task"
@@ -125,9 +150,8 @@ public final class ProfileRun {
      * losing more than were meant to be deleted says the cause is something else. Rounded up,
      * because a bound stated below the intention would spoil a run for behaving as asked.
      */
-    static long intendedDeletions(LoadProfile profile,
-            EquilibriumCheck.Intensities intensities) {
-        return (long) Math.ceil(intensities.deletionsPerMinute() * profile.steadyWindowMinutes());
+    static long intendedDeletions(LoadProfile profile, ScenarioDemand demand) {
+        return (long) Math.ceil(demand.deletionsPerMinute() * profile.steadyWindowMinutes());
     }
 
     /**
@@ -140,8 +164,9 @@ public final class ProfileRun {
      * includes the three screens that refuse under a successful status - while a refusal is a
      * status the application answered a request with.
      */
-    private static String report(LoadProfile profile, String sutVersion, String runStamp,
-            TestPlanStats stats, StarvationLedger starvation, RefusalLedger refusals) {
+    private static String report(LoadProfile profile, WarmStartCensus census,
+            WarmStart.Result warmStart, String sutVersion, String runStamp, TestPlanStats stats,
+            StarvationLedger starvation, RefusalLedger refusals) {
         StringBuilder report = new StringBuilder();
         report.append(String.format(Locale.ENGLISH,
                 "the run %s-%s is complete: profile \"%s\", SUT version %s%n",
@@ -149,6 +174,11 @@ public final class ProfileRun {
         report.append(String.format(Locale.ENGLISH,
                 "  %d virtual users, ramp %d s, steady window %d min%n",
                 profile.virtualUsers(), profile.rampSeconds(), profile.steadyWindowMinutes()));
+        report.append(String.format(Locale.ENGLISH,
+                "  warm start: a census of %d task(s) over %d bucket(s); the stand held %d task(s),"
+                        + " %d were read and %d created%n",
+                warmStart.census(), census.buckets().size(), warmStart.tasksOnTheStand(),
+                warmStart.read(), warmStart.created()));
         report.append(String.format(Locale.ENGLISH, "  %d samples, %d of them failed%n",
                 stats.overall().samplesCount(), stats.overall().errorsCount()));
         report.append(refusals(refusals));

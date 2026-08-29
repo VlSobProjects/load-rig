@@ -1,5 +1,7 @@
 package loadrig.model;
 
+import java.util.Optional;
+
 /**
  * The HTTP surface of the system under test: the addresses behind the business steps and the
  * fields of the forms that drive them.
@@ -125,6 +127,47 @@ public final class SutSurface {
 
         public String value() {
             return value;
+        }
+    }
+
+    /**
+     * How a list row spells the status of a task. The names are the registry's states; the marks
+     * are the application's own words for them, and the two are not the same word everywhere -
+     * finished work is stored as completed and shown as done. The spelling belongs here beside the
+     * addresses, the state belongs to the registry, and the mapping between them is made once, the
+     * way the transitions are.
+     *
+     * <p>A row also carries marks that are no status at all - an open task past its due date is
+     * marked overdue - so a reader takes the first mark it can name and refuses a row whose marks
+     * it cannot, instead of registering a task in a state the rig invented.
+     */
+    public enum StatusMark {
+
+        OPEN("Open"),
+        COMPLETED("Done"),
+        RETURNED("Returned"),
+        REFUSED("Refused"),
+        APPROVED("Approved"),
+        ACKNOWLEDGED("Acknowledged");
+
+        private final String mark;
+
+        StatusMark(String mark) {
+            this.mark = mark;
+        }
+
+        public String mark() {
+            return mark;
+        }
+
+        /** The status behind the mark a row shows, or empty when the mark names no status. */
+        public static Optional<StatusMark> ofMark(String mark) {
+            for (StatusMark known : values()) {
+                if (known.mark.equals(mark)) {
+                    return Optional.of(known);
+                }
+            }
+            return Optional.empty();
         }
     }
 

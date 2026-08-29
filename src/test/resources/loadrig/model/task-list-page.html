@@ -1,0 +1,101 @@
+<!--
+  A captured answer of the application to a list request: the task table with the columns it
+  renders and the paging state it counts itself by. Three rows, three statuses, and one of them
+  spelled by a word that is not the state's name - finished work is stored as completed and shown
+  as done, which is exactly what the reading has to get right.
+-->
+<section id="task-table" class="task-list">
+
+    <table class="table task-table">
+        <thead>
+        <tr>
+            <th>Created</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Creator</th>
+            <th>Assignee</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Task</th>
+        </tr>
+        </thead>
+        <tbody id="task-list-body">
+            <tr id="task-407">
+
+    <td>2026-08-29 19:21</td>
+    <td>lr3-20260829-192015-t7</td>
+    <td class="task-description">a task of the day profile</td>
+    <td>manager-02</td>
+    <td>worker-16</td>
+    <td>2026-09-01</td>
+
+    <td>
+        <!--
+          The stored status, one badge, and the badge classes are the ones the
+          shipped stylesheet defines. Overdue is not a status but a property of
+          an open task past its due date, so it is a mark of its own.
+        -->
+        <span>
+            <span class="badge text-bg-secondary">Open</span>
+        </span>
+
+    </td>
+
+    <td class="task-open">
+        <a href="/tasks/407?scope=all&amp;sort=due&amp;page=1"
+           hx-get="/tasks/407?scope=all&amp;sort=due&amp;page=1"
+           hx-target="#task-modal-host"
+           hx-swap="innerHTML"
+           class="btn btn-sm btn-info">Open</a>
+    </td>
+</tr>
+            <tr id="task-408">
+
+    <td>2026-08-29 19:22</td>
+    <td>lr3-20260829-192015-t8</td>
+    <td class="task-description">a task of the day profile</td>
+    <td>manager-01</td>
+    <td>worker-03</td>
+    <td>2026-09-20</td>
+
+    <td>
+        <span>
+            <span class="badge text-bg-success">Done</span>
+        </span>
+
+    </td>
+
+    <td class="task-open">
+        <a href="/tasks/408?scope=all&amp;sort=due&amp;page=1"
+           class="btn btn-sm btn-info">Open</a>
+    </td>
+</tr>
+            <tr id="task-409">
+
+    <td>2026-08-29 19:23</td>
+    <td>lr3-20260829-192015-t9</td>
+    <td class="task-description">a task of the day profile</td>
+    <td>manager-01</td>
+    <td>worker-01</td>
+    <td>2026-09-02</td>
+
+    <td>
+        <span>
+            <span class="badge text-bg-dark">Refused</span>
+        </span>
+
+    </td>
+
+    <td class="task-open">
+        <a href="/tasks/409?scope=all&amp;sort=due&amp;page=1"
+           class="btn btn-sm btn-info">Open</a>
+    </td>
+</tr>
+        </tbody>
+    </table>
+
+    <nav class="task-paging" aria-label="Pages">
+        <span class="task-paging-state">Page 1 of 17, 323 in total</span>
+    </nav>
+
+</section>

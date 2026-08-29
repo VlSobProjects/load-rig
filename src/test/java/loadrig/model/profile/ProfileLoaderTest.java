@@ -37,7 +37,6 @@ class ProfileLoaderTest {
         assertEquals(new StepMix(37, 22, 13, 12, 10, 5, 1), profile.stepMix());
         assertEquals(70, profile.hotSetSkew().taskOpensPercent());
         assertEquals(80, profile.hotSetSkew().notesPercent());
-        assertEquals(50000, profile.seededVolume());
         assertEquals(Map.of(
                         ScenarioName.WORKER, 5,
                         ScenarioName.MANAGER, 3,
@@ -54,6 +53,17 @@ class ProfileLoaderTest {
                 assertThrows(IllegalArgumentException.class, () -> ProfileLoader.load(profile));
         assertTrue(refusal.getMessage().contains("intensity"),
                 "the refusal must name the unknown key: " + refusal.getMessage());
+    }
+
+    @Test
+    void aProfileStillStatingASeededVolumeIsRefused() throws IOException {
+        Path profile = dayProfileWith("\"virtualUsers\": 10,",
+                "\"virtualUsers\": 10, \"seededVolume\": 50000,");
+        IllegalArgumentException refusal =
+                assertThrows(IllegalArgumentException.class, () -> ProfileLoader.load(profile));
+        assertTrue(refusal.getMessage().contains("seededVolume"),
+                "a profile that still states the stand's volume is refused by name, so no file"
+                        + " carries the untrue figure past the loader: " + refusal.getMessage());
     }
 
     @Test
