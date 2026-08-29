@@ -34,6 +34,6 @@ The registry is the only index. Add the row when the record lands on `developmen
 | # | Title | Status | Sessions |
 | --- | --- | --- | --- |
 | 1 | [One answer shape per capture: the fragment mode](dr-1-one-answer-shape-per-capture.md) | Accepted | 2026-08-28-implementation-1 |
-| 2 | [The load profile: external data over a code-owned vocabulary](dr-2-profile-over-a-code-owned-vocabulary.md) | Draft | 2026-08-28-architecture-1 |
+| 2 | [The load profile: external data over a code-owned vocabulary](dr-2-profile-over-a-code-owned-vocabulary.md) | Accepted | 2026-08-28-architecture-1, 2026-08-29-implementation-3 |
 | 3 | [The rig as a generation target](dr-3-the-rig-as-a-generation-target.md) | Draft | 2026-08-28-architecture-1 |
 | 4 | [Registry concurrency: one monitor, valid at this rig's scale only](dr-4-registry-concurrency-at-this-scale.md) | Draft | 2026-08-29-implementation-2 |

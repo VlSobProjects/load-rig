@@ -24,6 +24,16 @@ tasks.named('run') {
     systemProperties System.properties.findAll { name, value -> name.startsWith('loadrig.') }
 }
 
+tasks.register('validateProfile', JavaExec) {
+    description = 'Parses and checks a profile file without applying load'
+    group = 'application'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'loadrig.run.ProfileValidation'
+    // The file under validation is stated on the command line; the repository's own day
+    // profile is the one a bare invocation checks.
+    args = [System.getProperty('loadrig.profile', 'profiles/day.json')]
+}
+
 tasks.register('provisionPool', JavaExec) {
     description = 'Brings the account pool of a running stack to the configured state'
     group = 'application'
@@ -40,6 +50,11 @@ dependencies {
     // The load model and the run harness are built on JMeter driven as code.
     // The DSL embeds JMeter 5.6.x; no JMX files exist in this repository.
     implementation 'us.abstracta.jmeter:jmeter-java-dsl:2.2.1'
+
+    // The profile loader's JSON parser. The DSL already carries this artifact transitively;
+    // it is declared explicitly - at the same version - so that the loader of the profile does
+    // not depend on a transitive accident of the DSL's next release (DR-2).
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

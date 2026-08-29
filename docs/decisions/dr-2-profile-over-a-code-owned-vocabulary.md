@@ -1,6 +1,6 @@
 # DR 2 — The load profile: external data over a code-owned vocabulary
 
-**Status:** Draft
+**Status:** Accepted
 
 ## Context
 
@@ -70,7 +70,10 @@ by construction.
   into the same registry.
 - The profile is JSON, the format the brief already fixes for the description artifact. The JDK
   parses no JSON; whether the DSL already carries a parser transitively or a dependency is
-  added is settled with dependency approval when LR-3 implements this record.
+  added is settled with dependency approval when LR-3 implements this record. Settled at
+  implementation: the DSL carries `jackson-databind` transitively, and the artifact is declared
+  explicitly in `build.gradle` at the DSL's own version, so the profile loader does not depend
+  on a transitive accident of the DSL's next release.
 - The loader and the invariants are unit-tested against profile files, without a stack.
 - Intensity and mix numbers stop appearing in code entirely. A number from an exchange
   specification lives in a profile file, and the documents name it by role.
