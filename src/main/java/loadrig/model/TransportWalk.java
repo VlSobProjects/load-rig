@@ -1,12 +1,10 @@
 package loadrig.model;
 
-import static us.abstracta.jmeter.javadsl.JmeterDsl.boundaryExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpHeaders;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsr223PreProcessor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jtlWriter;
-import static us.abstracta.jmeter.javadsl.JmeterDsl.regexExtractor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.responseAssertion;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.simpleController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.testPlan;
@@ -19,7 +17,6 @@ import loadrig.model.SutSurface.Sort;
 import loadrig.model.SutSurface.Transition;
 import us.abstracta.jmeter.javadsl.core.DslTestPlan;
 import us.abstracta.jmeter.javadsl.core.controllers.DslSimpleController;
-import us.abstracta.jmeter.javadsl.core.postprocessors.DslBoundaryExtractor;
 import us.abstracta.jmeter.javadsl.core.postprocessors.DslRegexExtractor;
 import us.abstracta.jmeter.javadsl.core.preprocessors.DslJsr223PreProcessor;
 import us.abstracta.jmeter.javadsl.http.DslHttpSampler;
@@ -54,12 +51,6 @@ public final class TransportWalk {
 
     /** The identity of the account this walk provisioned, read from the row it appears in. */
     private static final String WALK_ACCOUNT_ID_VARIABLE = "walkAccountId";
-
-    /**
-     * What an extractor leaves behind when it finds nothing. It is not a fallback: the request
-     * built from it is refused, and the run states the refusal instead of walking on in silence.
-     */
-    private static final String EXTRACTION_FAILED = "EXTRACTION-FAILED";
 
     private static final String FIRST_PAGE = "1";
 
@@ -333,10 +324,8 @@ public final class TransportWalk {
                 .header(AnswerShape.SCRIPT_LIBRARY_HEADER, AnswerShape.SCRIPT_LIBRARY_HEADER_VALUE);
     }
 
-    private DslBoundaryExtractor sessionToken() {
-        return boundaryExtractor(CSRF_VARIABLE,
-                "name=\"" + SutSurface.CSRF_FIELD + "\" value=\"", "\"")
-                .defaultValue(EXTRACTION_FAILED);
+    private DslRegexExtractor sessionToken() {
+        return Correlation.sessionToken(CSRF_VARIABLE).extractor();
     }
 
     /**
@@ -345,16 +334,8 @@ public final class TransportWalk {
      * lottery the moment the walk runs against a database that already holds tasks.
      */
     static DslRegexExtractor taskIdentity() {
-        return regexExtractor(TASK_ID_VARIABLE, taskIdentityRegex(variable(WALK_TAG_VARIABLE)))
-                .defaultValue(EXTRACTION_FAILED);
-    }
-
-    /**
-     * The expression the identity of a task is read with. Package private so that a test can hold
-     * it against a captured answer without a running stack.
-     */
-    static String taskIdentityRegex(String walkTag) {
-        return "(?s)" + walkTag + ".*?href=\"" + SutSurface.TASKS + "/(\\d+)\\?";
+        return Correlation.taskIdentity(TASK_ID_VARIABLE, variable(WALK_TAG_VARIABLE))
+                .extractor();
     }
 
     /**
@@ -362,12 +343,7 @@ public final class TransportWalk {
      * assumed from the order a fresh database seeds its accounts in.
      */
     private DslRegexExtractor userIdOf(Account account) {
-        return regexExtractor(WORKER_USER_ID_VARIABLE, userIdRegex(account.username()))
-                .defaultValue(EXTRACTION_FAILED);
-    }
-
-    static String userIdRegex(String username) {
-        return "<option value=\"(\\d+)\">" + username + "<";
+        return Correlation.userIdentity(WORKER_USER_ID_VARIABLE, account.username()).extractor();
     }
 
     /**
@@ -375,13 +351,8 @@ public final class TransportWalk {
      * with and anchored on the name only this virtual user used.
      */
     private static DslRegexExtractor accountIdentity() {
-        return regexExtractor(WALK_ACCOUNT_ID_VARIABLE,
-                accountIdentityRegex(variable(WALK_ACCOUNT_VARIABLE)))
-                .defaultValue(EXTRACTION_FAILED);
-    }
-
-    static String accountIdentityRegex(String accountName) {
-        return "(?s)" + accountName + ".*?" + SutSurface.USERS + "/(\\d+)/delete";
+        return Correlation.accountIdentity(WALK_ACCOUNT_ID_VARIABLE,
+                variable(WALK_ACCOUNT_VARIABLE)).extractor();
     }
 
     /**
