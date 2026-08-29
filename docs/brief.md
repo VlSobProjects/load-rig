@@ -18,7 +18,9 @@ capture extraction and the triage logic all belong to the other two projects.
 ## The artifacts a run leaves
 
 - **The load-profile description** — what the run was meant to apply: operations, target rates,
-  ramp, and the version of the SUT under test, recorded as unknown when nobody stated one;
+  ramp, and the version of the SUT under test, read from the stand's information endpoint once
+  before the window opens — outside the task surface and outside the result log, so that asking
+  costs the capture no sample — and recorded as unknown only when the stand does not answer;
   authored per variant, JSON, written before the load starts so a dying injector still leaves
   it.
 - **The JTL result log** — the canonical injector export, fixed by the workflow-engine decision
@@ -55,6 +57,24 @@ configuration, never implicit constants.
   settlements), the hot-set skew and the think times are part of the model; the four false
   findings a break-it profile would produce are listed in the specification and each one is a
   named anti-requirement of this project.
+- **The refusal codes.** The task surface answers exactly five, and the list is closed: a request
+  the surface never produced, an action the actor does not own, a name that matches nothing, an
+  action the current status does not offer, and a required field left blank. A triage that
+  classifies refused samples by their code may hold the list as exhaustive. Two of them bind this
+  project further. The refusal of an unowned action and the refusal of a mutating request that
+  carries no valid token wear the same code and are not distinguishable by it; only the rig knows
+  which of its requests carried a token, so splitting the two is this project's obligation and
+  belongs in its own ledger. And the first code answers only a request no screen produces — the
+  scenarios follow the screens, so it can never be user behaviour in a clean capture, and its
+  appearance is a defect of the rig or a deliberately induced fault.
+- **The initial state.** The accounts and the seeded tasks both belong to the SUT project's
+  seeding item: two owners of the initial state are two states nobody reproduces. Once it lands
+  this project provisions nothing, its provisioning walk retires, and the seeded accounts are not
+  held at a password change. Until then the walk stands and must remain a no-op against a seeded
+  stand. The pool's composition is this project's statement and that item's input, settled through
+  the desk before it runs. There is no manifest of task identities and there will be none — no
+  user of the application holds one — so the rig learns the stand from the list page ordered by
+  due date, which is the intended path and not a workaround.
 - **The service levels.** Chosen, not measured, and a calibration lever: fixed before a
   campaign, recorded with every capture, held across the baseline and the faulted run alike.
 
@@ -71,7 +91,8 @@ answers go back through the exchange desk:
 
 The first four were answered through the desk on 2026-08-29: the account pool and the mix-survival
 check encode answers one and two, the task registry's hot set is answer three, and the profile
-file is answer four. The answer asks back whether the seeded history can pre-register hot tasks.
+file is answer four. The question asked back — whether the seeded history can pre-register hot
+tasks — was answered the same day: it cannot, and the rig reads the stand from the list instead.
 The fifth is owed after the first calibrated run.
 
 ## The injector-side defect variants
