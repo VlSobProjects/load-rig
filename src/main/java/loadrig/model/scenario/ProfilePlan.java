@@ -1,6 +1,7 @@
 package loadrig.model.scenario;
 
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.jsr223PostProcessor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jtlWriter;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.testPlan;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.threadGroup;
@@ -16,8 +17,10 @@ import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ScenarioName;
 import loadrig.model.step.Step;
 import loadrig.model.step.StepKit;
+import loadrig.registry.TransportContext;
 import us.abstracta.jmeter.javadsl.core.DslTestPlan;
 import us.abstracta.jmeter.javadsl.core.DslTestPlan.TestPlanChild;
+import us.abstracta.jmeter.javadsl.core.postprocessors.DslJsr223PostProcessor;
 import us.abstracta.jmeter.javadsl.core.threadgroups.BaseThreadGroup.ThreadGroupChild;
 
 /**
@@ -35,11 +38,21 @@ public final class ProfilePlan {
     private final String baseUrl;
     private final LoadProfile profile;
     private final ScenarioWiring wiring;
+    private final RefusalLedger refusals = new RefusalLedger();
 
     public ProfilePlan(String baseUrl, LoadProfile profile, ScenarioWiring wiring) {
         this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
         this.profile = Objects.requireNonNull(profile, "profile");
         this.wiring = Objects.requireNonNull(wiring, "wiring");
+    }
+
+    /**
+     * What the plan's own tally recorded while it ran. The plan builds the element that fills it,
+     * so the plan holds it; the harness asks for it when it writes the report. The starvation
+     * ledger arrives from the other direction because the scenario gates fill that one.
+     */
+    public RefusalLedger refusals() {
+        return refusals;
     }
 
     public DslTestPlan plan(String jtlDirectory, String jtlFileName) {
@@ -75,10 +88,26 @@ public final class ProfilePlan {
             children.add(step.scheduled(100f * step.weight() / totalWeight));
         }
         children.add(session.setDown());
+        children.add(refusalTally());
         return threadGroup(scenario.name().key())
                 .rampToAndHold(population, Duration.ofSeconds(profile.rampSeconds()),
                         Duration.ofMinutes(profile.steadyWindowMinutes()))
                 .children(children.toArray(new ThreadGroupChild[0]));
+    }
+
+    /**
+     * The element that fills the refusal ledger. It sits in the group rather than on a sampler,
+     * so that it runs after every request the group makes and no step can be added that escapes
+     * it, and it reads exactly two things: the status the application answered with, and whether
+     * the thread held a token when it asked. The second is what splits the one refusal code that
+     * carries two causes, and it is knowable only here, inside the injector.
+     *
+     * <p>It writes nothing into the sample and changes nothing about the run: the result log is
+     * unaffected, and the split lives in the report the harness writes beside it.
+     */
+    private DslJsr223PostProcessor refusalTally() {
+        return jsr223PostProcessor(s -> refusals.answered(s.prev.getResponseCode(),
+                TransportContext.isAToken(s.vars.get(SessionSteps.SESSION_TOKEN_VARIABLE))));
     }
 
     /**

@@ -14,6 +14,7 @@ import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.scenario.MixSurvivalCheck;
 import loadrig.model.scenario.ProfilePlan;
+import loadrig.model.scenario.RefusalLedger;
 import loadrig.model.scenario.ScenarioWiring;
 import loadrig.model.scenario.StarvationLedger;
 import loadrig.registry.SessionRegistry;
@@ -58,6 +59,7 @@ public final class ProfileRun {
         LoadProfile profile;
         EquilibriumCheck.Intensities intensities;
         StarvationLedger starvation = new StarvationLedger();
+        ProfilePlan profilePlan;
         DslTestPlan plan;
         Path runDirectory;
         try {
@@ -70,16 +72,21 @@ public final class ProfileRun {
                     new SessionRegistry(AccountPool.members()),
                     new TaskRegistry(), new UserDirectory(), starvation,
                     profile.hotSetSkew(), runStamp, configuration.provisionedPassword());
-            plan = new ProfilePlan(configuration.baseUrl(), profile, wiring)
-                    .plan(runDirectory.toString(), SAMPLES_FILE);
+            profilePlan = new ProfilePlan(configuration.baseUrl(), profile, wiring);
+            plan = profilePlan.plan(runDirectory.toString(), SAMPLES_FILE);
         } catch (IllegalArgumentException e) {
             System.err.println("the run under " + profileFile + " is refused: " + e.getMessage());
             System.exit(1);
             return;
         }
 
+        // Asked before the window opens and outside the test plan, so the description carries a
+        // version the stand itself named and the capture pays no sample for the question.
+        String sutVersion = configuration.statedSutVersion()
+                .orElseGet(() -> SutVersion.askTheStand(configuration.baseUrl()));
+
         Files.createDirectories(runDirectory);
-        LoadProfileDescription.of(profile, intensities, runStamp, configuration.sutVersion())
+        LoadProfileDescription.of(profile, intensities, runStamp, sutVersion)
                 .writeTo(runDirectory.resolve(DESCRIPTION_FILE));
 
         System.out.println("driving " + configuration.baseUrl() + " under the profile \""
@@ -90,13 +97,14 @@ public final class ProfileRun {
 
         TestPlanStats stats = plan.runIn(new EmbeddedJmeterEngine());
 
-        String report = report(profile, configuration.sutVersion(), runStamp, stats, starvation);
+        String report = report(profile, sutVersion, runStamp, stats, starvation,
+                profilePlan.refusals());
         System.out.println(report);
         Files.writeString(runDirectory.resolve(REPORT_FILE), report);
 
         long errors = stats.overall().errorsCount();
         if (errors > 0) {
-            throw new IOException("the run was refused " + errors + " time(s); a clean profile"
+            throw new IOException("the run failed " + errors + " sample(s); a clean profile"
                     + " asks only what the application allows, so the capture in " + runDirectory
                     + " holds the script's failures beside the system's answers - read "
                     + REPORT_FILE + " and the log before trusting it");
@@ -104,12 +112,17 @@ public final class ProfileRun {
     }
 
     /**
-     * What the run realized against what it intended: the counts and the starvation ledger. A
-     * skipped gate is the run's timing, not an error, but a drifted realized mix must name
-     * where it drifted instead of keeping the drift a secret of the log.
+     * What the run realized against what it intended: the counts, the refusals and the starvation
+     * ledger. A skipped gate is the run's timing, not an error, but a drifted realized mix must
+     * name where it drifted instead of keeping the drift a secret of the log.
+     *
+     * <p>A failed sample and a refusal are counted separately and named apart, because they are
+     * not the same thing: a sample fails when its content assertion is not satisfied - which
+     * includes the three screens that refuse under a successful status - while a refusal is a
+     * status the application answered a request with.
      */
     private static String report(LoadProfile profile, String sutVersion, String runStamp,
-            TestPlanStats stats, StarvationLedger starvation) {
+            TestPlanStats stats, StarvationLedger starvation, RefusalLedger refusals) {
         StringBuilder report = new StringBuilder();
         report.append(String.format(Locale.ENGLISH,
                 "the run %s-%s is complete: profile \"%s\", SUT version %s%n",
@@ -117,8 +130,9 @@ public final class ProfileRun {
         report.append(String.format(Locale.ENGLISH,
                 "  %d virtual users, ramp %d s, steady window %d min%n",
                 profile.virtualUsers(), profile.rampSeconds(), profile.steadyWindowMinutes()));
-        report.append(String.format(Locale.ENGLISH, "  %d samples, %d of them refused%n",
+        report.append(String.format(Locale.ENGLISH, "  %d samples, %d of them failed%n",
                 stats.overall().samplesCount(), stats.overall().errorsCount()));
+        report.append(refusals(refusals));
         Map<String, Long> skips = starvation.skips();
         if (skips.isEmpty()) {
             report.append("  starvation ledger: every gate found its pick").append(System.lineSeparator());
@@ -131,6 +145,43 @@ public final class ProfileRun {
                 .append(SAMPLES_FILE).append(", ").append(REPORT_FILE)
                 .append(System.lineSeparator());
         return report.toString();
+    }
+
+    /**
+     * The refusals by the code the application answered with. The code that carries two causes is
+     * broken into them here and nowhere else: the result log cannot hold the split, because
+     * nothing in a sample says whether the request held a token, and only the injector knows.
+     *
+     * <p>The code no screen of the application produces gets a sentence of its own when it
+     * appears. The scenarios follow the screens, so no person could have produced it: in a run
+     * meant to be clean it is the rig's own defect, and a reader who takes it for user behaviour
+     * reads the capture wrong.
+     */
+    private static String refusals(RefusalLedger refusals) {
+        Map<Integer, Long> counts = refusals.counts();
+        if (counts.isEmpty()) {
+            return "  refusals: the application refused nothing" + System.lineSeparator();
+        }
+        StringBuilder lines = new StringBuilder();
+        lines.append(String.format(Locale.ENGLISH, "  refusals: %d, by code%n", refusals.total()));
+        counts.forEach((code, count) -> lines.append(
+                String.format(Locale.ENGLISH, "    %d answered %d time(s)%s%n", code, count,
+                        note(code, refusals))));
+        return lines.toString();
+    }
+
+    private static String note(int code, RefusalLedger refusals) {
+        if (code == RefusalLedger.FORBIDDEN) {
+            return String.format(Locale.ENGLISH,
+                    " - %d asked holding a token, an action the actor does not own; %d asked"
+                            + " without one, a session that lost its token",
+                    refusals.forbiddenCarryingAToken(), refusals.forbiddenCarryingNone());
+        }
+        if (code == RefusalLedger.NEVER_PRODUCED_BY_A_SCREEN) {
+            return " - no screen of the application produces this request, so no person made it:"
+                    + " in a run meant to be clean it is the rig's own defect";
+        }
+        return "";
     }
 
     private ProfileRun() {
