@@ -63,6 +63,11 @@ answers go back through the exchange desk:
 4. The intensities and the skew as the rig's own explicit, versioned configuration.
 5. The first measured baseline against the service levels — where the real percentiles land.
 
+The first four were answered through the desk on 2026-08-29: the account pool and the mix-survival
+check encode answers one and two, the task registry's hot set is answer three, and the profile
+file is answer four. The answer asks back whether the seeded history can pre-register hot tasks.
+The fifth is owed after the first calibrated run.
+
 ## The injector-side defect variants
 
 Three of the scenario's dataset variants are induced here, not in the SUT:
