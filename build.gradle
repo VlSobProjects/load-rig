@@ -34,6 +34,17 @@ tasks.register('validateProfile', JavaExec) {
     args = [System.getProperty('loadrig.profile', 'profiles/day.json')]
 }
 
+tasks.register('runProfile', JavaExec) {
+    description = 'Runs a load profile against the stack and lays down the capture artifacts'
+    group = 'application'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'loadrig.run.ProfileRun'
+    systemProperties System.properties.findAll { name, value -> name.startsWith('loadrig.') }
+    // The profile under load is stated on the command line; the repository's own day profile
+    // is the one a bare invocation runs.
+    args = [System.getProperty('loadrig.profile', 'profiles/day.json')]
+}
+
 tasks.register('provisionPool', JavaExec) {
     description = 'Brings the account pool of a running stack to the configured state'
     group = 'application'

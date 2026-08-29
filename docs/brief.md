@@ -18,12 +18,18 @@ capture extraction and the triage logic all belong to the other two projects.
 ## The artifacts a run leaves
 
 - **The load-profile description** — what the run was meant to apply: operations, target rates,
-  ramp; authored per variant, JSON.
+  ramp, and the version of the SUT under test, recorded as unknown when nobody stated one;
+  authored per variant, JSON, written before the load starts so a dying injector still leaves
+  it.
 - **The JTL result log** — the canonical injector export, fixed by the workflow-engine decision
   of 2026-08-28: per-sample timestamped records from which achieved intensity over time, a flood
   of one operation and the moment the injector's own data stops are all computable. The
   timestamp semantics (`sampleresult.timestamp.start`) is set explicitly in the rig's
   configuration, never left to a default.
+- **The run report** — what the run realized against what it intended: the sample and error
+  counts and the starvation ledger's skip counts by step, so a realized mix that drifted from
+  the profile names where. The harness's console statement, kept beside the capture for
+  analysis.
 - No live push of raw samples into a time-series store. The known pathology — unique
   nano-second timestamps killing the store's aggregation model, and spikes attributed to their
   completion time — is avoided by construction: raw samples go to the durable file only, and any
