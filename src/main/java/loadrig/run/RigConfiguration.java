@@ -16,8 +16,9 @@ import loadrig.model.Role;
  * the ones a stack brought up from nothing answers with: the application publishes its port on the
  * capture host the generator itself runs on, and a fresh database seeds one account per role.
  *
- * <p>The account pool of a full profile is not this class's subject. It needs as many accounts as
- * the profile has virtual users, and creating them is work of its own.
+ * <p>The composition of the account pool - how many accounts, how many of them managers - is the
+ * load model's subject and lives in {@code loadrig.model.AccountPool}; this class carries only the
+ * password the pool is provisioned with and signs in under.
  */
 public final class RigConfiguration {
 

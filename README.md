@@ -41,6 +41,14 @@ It is not a capture and carries no load profile: it proves that the rig drives t
 The profiles, the run harness and the capture artifacts are later work items
 (`docs/roadmap.md`).
 
+Provisioning the account pool also needs a running stack: it brings the stack to the configured
+pool through the administrator screens, walks each fresh account's forced password change and
+proves every member's sign-in. It is idempotent - a stack already provisioned is only proven.
+
+```bash
+./gradlew provisionPool                          # the defaults: a stack on the capture host
+```
+
 ## Layout
 
 | Path | What it holds |
