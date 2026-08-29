@@ -24,6 +24,14 @@ tasks.named('run') {
     systemProperties System.properties.findAll { name, value -> name.startsWith('loadrig.') }
 }
 
+tasks.register('provisionPool', JavaExec) {
+    description = 'Brings the account pool of a running stack to the configured state'
+    group = 'application'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'loadrig.run.PoolProvisioner'
+    systemProperties System.properties.findAll { name, value -> name.startsWith('loadrig.') }
+}
+
 repositories {
     mavenCentral()
 }

@@ -59,6 +59,14 @@ public final class SutSurface {
     /** Rendered by every screen an authenticated session reaches, and by no screen before it. */
     public static final String AUTHENTICATED_MARK = "action=\"" + LOGOUT + "\"";
 
+    /**
+     * The form of the password change, rendered by the screen a fresh account is held at until it
+     * chooses a new password. Checked before the authenticated mark: the held screen is served to a
+     * signed-in session, and a reader looking for the authenticated mark alone would take an
+     * account that cannot reach any other screen for a usable one.
+     */
+    public static final String PASSWORD_CHANGE_MARK = "action=\"" + CHANGE_PASSWORD + "\"";
+
     /** The state of the list, carried by every request to the task surface and by every answer. */
     public static final String SCOPE_FIELD = "scope";
     public static final String SORT_FIELD = "sort";
