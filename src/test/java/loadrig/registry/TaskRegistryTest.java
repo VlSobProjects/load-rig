@@ -189,6 +189,34 @@ class TaskRegistryTest {
                 "the walk ends with the table empty: every transition and every status was real");
     }
 
+    @Test
+    void aVanishedTaskIsForgottenWithItsHold() {
+        registry.register(openTask("1", CREATOR, ASSIGNEE, false));
+        registry.lease(Transition.FINISH, ASSIGNEE, Role.WORKER);
+
+        registry.vanished("1");
+
+        assertThrows(RegistryStarvedException.class,
+                () -> registry.toOpen(CREATOR, Role.MANAGER, false),
+                "a task the system no longer holds must not be handed out again");
+        registry.register(openTask("1", CREATOR, ASSIGNEE, false));
+        assertEquals("1", registry.lease(Transition.FINISH, ASSIGNEE, Role.WORKER).task().taskId(),
+                "the hold goes with the task: nothing stays leased by a step that lost its task");
+    }
+
+    @Test
+    void aTaskThatVanishedTwiceIsNotAFailure() {
+        registry.register(openTask("1", CREATOR, ASSIGNEE, false));
+
+        registry.vanished("1");
+        registry.vanished("1");
+        registry.vanished("a task this registry never knew");
+
+        assertThrows(RegistryStarvedException.class,
+                () -> registry.toOpen(CREATOR, Role.MANAGER, false),
+                "two sessions may meet one deletion, and the second must not fail over the first");
+    }
+
     private static TaskRegistry.TaskFacts openTask(String taskId, String creator, String assignee,
             boolean hot) {
         return new TaskRegistry.TaskFacts(taskId, TaskStatus.OPEN, creator, assignee, hot);

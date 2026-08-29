@@ -141,7 +141,7 @@ public final class ManagerScenario implements Scenario {
             vars.put(IterationSlots.ASSIGNEE_ID, wiring.directory().idOf(next).orElseThrow());
             return true;
         };
-        DslHttpSampler request = CommonSteps.transitionRequest(kit, name,
+        DslHttpSampler request = CommonSteps.transitionRequest(kit, wiring, name,
                 Transition.HAND_OUT_AGAIN, LIST_SCOPE, LIST_SORT, ANSWER_TO_THE_QUESTION)
                 .param(SutSurface.TASK_ASSIGNEE_FIELD,
                         StepKit.variable(IterationSlots.ASSIGNEE_ID));
@@ -152,6 +152,10 @@ public final class ManagerScenario implements Scenario {
                 return;
             }
             s.vars.putObject(IterationSlots.MOVE_LEASE, null);
+            // Deleted under this session: no outcome to record, and the hold is already gone.
+            if (CommonSteps.theTaskIsGone(s.prev)) {
+                return;
+            }
             if (CommonSteps.accepted(s.prev, s.prevResponse())) {
                 wiring.tasks().applied(lease, s.vars.get(IterationSlots.ASSIGNEE_NAME));
             } else {

@@ -59,7 +59,7 @@ public final class ProfileRun {
         LoadProfile profile;
         EquilibriumCheck.Intensities intensities;
         StarvationLedger starvation = new StarvationLedger();
-        ProfilePlan profilePlan;
+        RefusalLedger refusals = new RefusalLedger();
         DslTestPlan plan;
         Path runDirectory;
         try {
@@ -70,10 +70,10 @@ public final class ProfileRun {
                     .resolve(profile.name() + "-" + runStamp);
             ScenarioWiring wiring = new ScenarioWiring(
                     new SessionRegistry(AccountPool.members()),
-                    new TaskRegistry(), new UserDirectory(), starvation,
+                    new TaskRegistry(), new UserDirectory(), starvation, refusals,
                     profile.hotSetSkew(), runStamp, configuration.provisionedPassword());
-            profilePlan = new ProfilePlan(configuration.baseUrl(), profile, wiring);
-            plan = profilePlan.plan(runDirectory.toString(), SAMPLES_FILE);
+            plan = new ProfilePlan(configuration.baseUrl(), profile, wiring)
+                    .plan(runDirectory.toString(), SAMPLES_FILE);
         } catch (IllegalArgumentException e) {
             System.err.println("the run under " + profileFile + " is refused: " + e.getMessage());
             System.exit(1);
@@ -97,8 +97,7 @@ public final class ProfileRun {
 
         TestPlanStats stats = plan.runIn(new EmbeddedJmeterEngine());
 
-        String report = report(profile, sutVersion, runStamp, stats, starvation,
-                profilePlan.refusals());
+        String report = report(profile, sutVersion, runStamp, stats, starvation, refusals);
         System.out.println(report);
         Files.writeString(runDirectory.resolve(REPORT_FILE), report);
 
@@ -109,6 +108,26 @@ public final class ProfileRun {
                     + " holds the script's failures beside the system's answers - read "
                     + REPORT_FILE + " and the log before trusting it");
         }
+        long vanished = refusals.tasksVanishedUnderASession();
+        long intended = intendedDeletions(profile, intensities);
+        if (vanished > intended) {
+            throw new IOException("the run lost " + vanished + " task(s) under a session while"
+                    + " the profile intended to delete " + intended + " over the window; a task"
+                    + " deleted between a session's pick and its request is a race the capture may"
+                    + " carry, but more of them than the profile meant to remove is not a race -"
+                    + " the capture in " + runDirectory + " is not a clean one");
+        }
+    }
+
+    /**
+     * How many tasks the profile means to remove over the steady window. It is the bound the
+     * tolerated losses are held against: a session can only lose a task somebody deleted, so
+     * losing more than were meant to be deleted says the cause is something else. Rounded up,
+     * because a bound stated below the intention would spoil a run for behaving as asked.
+     */
+    static long intendedDeletions(LoadProfile profile,
+            EquilibriumCheck.Intensities intensities) {
+        return (long) Math.ceil(intensities.deletionsPerMinute() * profile.steadyWindowMinutes());
     }
 
     /**
@@ -171,6 +190,12 @@ public final class ProfileRun {
     }
 
     private static String note(int code, RefusalLedger refusals) {
+        if (code == RefusalLedger.NAMES_NOTHING) {
+            return String.format(Locale.ENGLISH,
+                    ", on %d task(s) deleted under a session between the pick and the request -"
+                            + " carried by the run rather than failed over",
+                    refusals.tasksVanishedUnderASession());
+        }
         if (code == RefusalLedger.FORBIDDEN) {
             return String.format(Locale.ENGLISH,
                     " - %d asked holding a token, an action the actor does not own; %d asked"
