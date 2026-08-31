@@ -80,6 +80,17 @@ class TaskListReadingTest {
     }
 
     @Test
+    void theCountIsReadThroughTheGroupingTheListRendersItUnder() {
+        Optional<TaskListReading.Paging> paging =
+                TaskListReading.pagingOf("Page 1 of 54, 1,063 in total");
+
+        assertTrue(paging.isPresent(), "the first stand to pass a thousand tasks refused the"
+                + " reading, and a stand the rig cannot read cannot be acted on");
+        assertEquals(54, paging.get().pages());
+        assertEquals(1063, paging.get().tasksInTotal());
+    }
+
+    @Test
     void anAnswerWithoutAPagingStateIsReadAsNoCountAtAll() {
         assertEquals(Optional.empty(), TaskListReading.pagingOf("<section id=\"task-table\">"),
                 "a list with nothing to page over states no count, and the caller decides what"

@@ -48,8 +48,14 @@ public final class TaskListReading {
             + "<td>([^<]*)</td>"
             + ".*?<span class=\"badge[^\"]*\">([^<]*)</span>");
 
+    /**
+     * The counts carry the application's own digit grouping. Written against a stand of a few
+     * hundred tasks, this expression accepted digits alone, and the first stand to pass a thousand
+     * refused the reading: the page states {@code 1,063 in total} and the rig read no paging state
+     * at all. The separator is part of what the list renders, so it is part of what is read.
+     */
     private static final Pattern PAGING =
-            Pattern.compile("Page (\\d+) of (\\d+), (\\d+) in total");
+            Pattern.compile("Page ([\\d,]+) of ([\\d,]+), ([\\d,]+) in total");
 
     /**
      * The rows of the answer, in the order the list rendered them - which is the order the sort
@@ -90,8 +96,13 @@ public final class TaskListReading {
         if (!matcher.find()) {
             return Optional.empty();
         }
-        return Optional.of(new Paging(Integer.parseInt(matcher.group(1)),
-                Integer.parseInt(matcher.group(2)), Integer.parseInt(matcher.group(3))));
+        return Optional.of(new Paging(count(matcher.group(1)), count(matcher.group(2)),
+                count(matcher.group(3))));
+    }
+
+    /** One count of the paging state, with the grouping the page rendered it under removed. */
+    private static int count(String rendered) {
+        return Integer.parseInt(rendered.replace(",", ""));
     }
 
     private static LocalDate dueDate(String taskId, String rendered) {
