@@ -95,7 +95,11 @@ configuration, never implicit constants.
   injector-side variants are meant to breach. And it is half a verdict by construction — the
   viability criteria are these levels together with the application's log staying quiet and the
   throttled-period counter staying flat, and those two are read on the stand, because the rig
-  drives no operational endpoint.
+  drives no operational endpoint. A campaign that searches for the maximum is judged by figures of
+  its own, derived as one multiple of what the same stand answered when it was quiet, because the
+  chosen figures are met by orders of magnitude and a search judged by them would terminate past
+  the knee (DR-7); which campaign a capture belongs to is therefore part of what it means, and the
+  description carries the figures it was judged by.
 
 ## What this project must answer back
 
