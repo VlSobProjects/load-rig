@@ -62,8 +62,12 @@ configuration, never implicit constants.
   named anti-requirement of this project. The equilibrium is a property of the working set — the
   tasks the steps may act on — and the rig holds it by establishing that population before the
   window, stocking each bucket for the drain the window causes, and keeping the run's work among
-  the accounts the run occupies rather than the whole pool; what the window adds to the table
-  itself is published as a fact of the capture, against the volume the stand was measured to hold.
+  the accounts the run plays over its window rather than the whole pool — a session ends and
+  another begins, so those accounts are more than the seats a step holds at once, and an account
+  between sessions is waiting its turn rather than absent (DR-8). What the window adds to the table
+  itself is published as a fact of the capture; how much the stand holds when the window opens is
+  the campaign's own stated figure, which the warm start levels to in both directions, so that the
+  steps of one campaign differ in intensity alone.
 - **The refusal codes.** The task surface answers exactly five, and the list is closed: a request
   the surface never produced, an action the actor does not own, a name that matches nothing, an
   action the current status does not offer, and a required field left blank. A triage that
