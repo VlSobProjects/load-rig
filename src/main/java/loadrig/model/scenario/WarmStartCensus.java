@@ -31,6 +31,14 @@ import loadrig.registry.TransitionTable.ActingParty;
  * <p>The flows are {@link ScenarioDemand}'s, so the census is computed from the same weights the
  * plan is built from. The deletion is deliberately outside the census: it draws from every status
  * of every task, and the only stand it starves on is one with no tasks at all.
+ *
+ * <p>The buckets are the accounts the run <em>plays</em> and not the ones it seats at once
+ * (DR-8): a session ends at a stated share and the account that signs in next is chosen by state,
+ * so every player takes its turn in the seats over the window and each of them must hold work
+ * when it does. A demand is therefore spread over the whole rotation, which lowers what any one
+ * account is drawn from per minute and raises the census by roughly the rotation's depth - the
+ * cost the decision names, and the whole point of it: the working set the stand must hold is as
+ * wide as the people who play, not as the seats.
  */
 public final class WarmStartCensus {
 
@@ -54,9 +62,13 @@ public final class WarmStartCensus {
      */
     static final int CEILING = 1000;
 
-    /** One stock the census states, with the flows it was computed from. */
+    /**
+     * One stock the census states, with the flows it was computed from: what the account is drawn
+     * from per minute averaged over the window, what it is drawn from per minute while it holds a
+     * seat, and what flows into it.
+     */
     public record Bucket(String actor, ActingParty relation, TaskStatus status,
-            double drawnPerMinute, double fedPerMinute, int tasks) {
+            double drawnPerMinute, double seatedDrawnPerMinute, double fedPerMinute, int tasks) {
     }
 
     /** One task the warm start must bring about, because the stand does not hold it yet. */
@@ -73,8 +85,8 @@ public final class WarmStartCensus {
         this.workers = List.copyOf(workers);
     }
 
-    /** The census the profile implies, over the accounts its populations occupy. */
-    public static WarmStartCensus of(LoadProfile profile, SeatedAccounts seated) {
+    /** The census the profile implies, over the accounts the run plays across its window. */
+    public static WarmStartCensus of(LoadProfile profile, PlayingAccounts playing) {
         ScenarioDemand demand = ScenarioDemand.of(profile);
         Map<Transition, Role> actingRoles = actingRoles();
 
@@ -83,30 +95,35 @@ public final class WarmStartCensus {
             if (transition == Transition.DELETE || demand.rateOf(transition) == 0) {
                 continue;
             }
-            List<String> actors = seated.names(actingRoles.get(transition));
+            List<String> actors = playing.names(actingRoles.get(transition));
             if (actors.isEmpty()) {
                 continue;
             }
             ActingParty relation = TransitionTable.actingParty(transition);
             TaskStatus status = drawnFrom(transition);
             double drawnPerActor = demand.rateOf(transition) / actors.size();
+            double drawnPerSeat =
+                    demand.rateOf(transition) / playing.seats(actingRoles.get(transition));
             for (String actor : actors) {
                 String key = actor + "/" + relation + "/" + status;
                 Bucket held = byKey.get(key);
                 double drawn = drawnPerActor + (held == null ? 0 : held.drawnPerMinute());
-                byKey.put(key, new Bucket(actor, relation, status, drawn, 0, 0));
+                double seated = drawnPerSeat + (held == null ? 0 : held.seatedDrawnPerMinute());
+                byKey.put(key, new Bucket(actor, relation, status, drawn, seated, 0, 0));
             }
         }
 
         List<Bucket> buckets = new ArrayList<>();
+        double stintMinutes = Math.min(demand.seatStintMinutes(), profile.steadyWindowMinutes());
         for (Bucket bucket : byKey.values()) {
-            double fed = fedPerMinute(demand, bucket, seated);
+            double fed = fedPerMinute(demand, bucket, playing);
             buckets.add(new Bucket(bucket.actor(), bucket.relation(), bucket.status(),
-                    bucket.drawnPerMinute(), fed,
-                    stock(bucket.drawnPerMinute(), fed, profile.steadyWindowMinutes())));
+                    bucket.drawnPerMinute(), bucket.seatedDrawnPerMinute(), fed,
+                    stock(bucket.drawnPerMinute(), bucket.seatedDrawnPerMinute(), fed,
+                            profile.steadyWindowMinutes(), stintMinutes)));
         }
-        return new WarmStartCensus(buckets, seated.names(Role.MANAGER),
-                seated.names(Role.WORKER));
+        return new WarmStartCensus(buckets, playing.names(Role.MANAGER),
+                playing.names(Role.WORKER));
     }
 
     public List<Bucket> buckets() {
@@ -127,7 +144,7 @@ public final class WarmStartCensus {
             return;
         }
         if (workers.isEmpty()) {
-            throw new IllegalArgumentException("the profile occupies no worker account, and every"
+            throw new IllegalArgumentException("the profile plays no worker account, and every"
                     + " task the census asks for is assigned to one; a population that moves work"
                     + " without anybody to do it is not a load model");
         }
@@ -189,11 +206,12 @@ public final class WarmStartCensus {
         StringBuilder statement = new StringBuilder();
         for (Bucket bucket : buckets) {
             statement.append(String.format(Locale.ENGLISH,
-                    "    %s as %s holds %d %s (drawn %.2f, fed %.2f per minute)%n",
+                    "    %s as %s holds %d %s (drawn %.2f, %.2f while seated, fed %.2f per"
+                            + " minute)%n",
                     bucket.actor(),
                     bucket.relation() == ActingParty.THE_ASSIGNEE ? "assignee" : "creator",
                     bucket.tasks(), bucket.status(), bucket.drawnPerMinute(),
-                    bucket.fedPerMinute()));
+                    bucket.seatedDrawnPerMinute(), bucket.fedPerMinute()));
         }
         return statement.toString();
     }
@@ -222,11 +240,11 @@ public final class WarmStartCensus {
     /**
      * What flows into the bucket per minute: every transition that lands a task in its status, and
      * the creations when the status is the one a creation lands in, divided over the accounts the
-     * landed tasks spread across - the assignee of a task is drawn among the occupied workers and
-     * its creator among the occupied managers.
+     * landed tasks spread across - the assignee of a task is drawn among the workers the run
+     * plays and its creator among the managers it plays.
      */
     private static double fedPerMinute(ScenarioDemand demand, Bucket bucket,
-            SeatedAccounts seated) {
+            PlayingAccounts playing) {
         double into = 0;
         for (Transition transition : Transition.values()) {
             if (transition == Transition.DELETE) {
@@ -240,19 +258,42 @@ public final class WarmStartCensus {
             into += demand.creationsPerMinute();
         }
         List<String> spread = bucket.relation() == ActingParty.THE_ASSIGNEE
-                ? seated.names(Role.WORKER)
-                : seated.names(Role.MANAGER);
+                ? playing.names(Role.WORKER)
+                : playing.names(Role.MANAGER);
         return spread.isEmpty() ? 0 : into / spread.size();
     }
 
     /**
-     * What one bucket holds when the window opens: the drain the window causes wherever the feed
-     * does not match the draw, plus the slack the randomness of the draw asks for.
+     * What one bucket holds when the window opens. Two horizons ask for a stock and the larger
+     * wins, because a bucket that empties on either of them starves the gate it feeds.
+     *
+     * <p>Over the <strong>window</strong> the account is drawn from at the rate its share of the
+     * rotation implies, and the stock covers whatever the feed does not, plus the slack the
+     * randomness of the draw asks for.
+     *
+     * <p>Over one <strong>stint</strong> - the time the account holds a seat before it gives the
+     * session up - it is drawn from at the seat's own rate, because the rotation does not turn
+     * over between two steps, while the feed arrives no faster than before: the work landing on an
+     * account is spread over every player whether that player is seated or not. A bucket stocked
+     * for the window's average alone therefore empties inside a stint. Measured, on the first run
+     * played over a rotation three accounts deep: a worker stocked for four open tasks was drawn
+     * from seven times in one stint, and the starvation ledger recorded the difference as skipped
+     * transitions - the mix drifting for a reason the census could have foreseen.
+     *
+     * <p>The two coincide when a seat rotates through one account, which is why the figures of a
+     * rotation that deep are the ones they always were.
      */
-    private static int stock(double drawnPerMinute, double fedPerMinute, int windowMinutes) {
-        double drain = Math.max(0, drawnPerMinute - fedPerMinute) * windowMinutes;
-        double slack = COVER_DEVIATIONS * Math.sqrt(drawnPerMinute * windowMinutes);
-        return Math.max(MINIMUM_STOCK, (int) Math.ceil(drain + slack));
+    private static int stock(double drawnPerMinute, double seatedDrawnPerMinute,
+            double fedPerMinute, int windowMinutes, double stintMinutes) {
+        return Math.max(MINIMUM_STOCK, (int) Math.ceil(Math.max(
+                cover(drawnPerMinute, fedPerMinute, windowMinutes),
+                cover(seatedDrawnPerMinute, fedPerMinute, stintMinutes))));
+    }
+
+    /** The drain of one horizon wherever the feed does not match the draw, plus its slack. */
+    private static double cover(double drawnPerMinute, double fedPerMinute, double minutes) {
+        return Math.max(0, drawnPerMinute - fedPerMinute) * minutes
+                + COVER_DEVIATIONS * Math.sqrt(drawnPerMinute * minutes);
     }
 
     /** Whose accounts a transition's demand lands on: the role of the scenarios that apply it. */

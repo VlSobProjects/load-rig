@@ -8,17 +8,17 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
-import loadrig.model.AccountPool;
+import loadrig.model.profile.Campaign;
+import loadrig.model.profile.CampaignLoader;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.profile.ServiceLevels;
-import loadrig.model.profile.ServiceLevelsLoader;
 import loadrig.model.scenario.MixSurvivalCheck;
+import loadrig.model.scenario.PlayingAccounts;
 import loadrig.model.scenario.ProfilePlan;
 import loadrig.model.scenario.RefusalLedger;
 import loadrig.model.scenario.ScenarioDemand;
 import loadrig.model.scenario.ScenarioWiring;
-import loadrig.model.scenario.SeatedAccounts;
 import loadrig.model.scenario.ServiceLevelLedger;
 import loadrig.model.scenario.StarvationLedger;
 import loadrig.model.scenario.WarmStartCensus;
@@ -68,8 +68,9 @@ public final class ProfileRun {
         String runStamp = ZonedDateTime.now(ZoneOffset.UTC).format(RUN_STAMP);
 
         LoadProfile profile;
-        ServiceLevels serviceLevels;
+        Campaign campaign;
         ScenarioDemand demand;
+        PlayingAccounts playing;
         WarmStartCensus census;
         StarvationLedger starvation = new StarvationLedger();
         RefusalLedger refusals = new RefusalLedger();
@@ -80,16 +81,19 @@ public final class ProfileRun {
         Path runDirectory;
         try {
             profile = ProfileLoader.load(profileFile);
-            serviceLevels = ServiceLevelsLoader.load(configuration.serviceLevelsFile());
+            campaign = CampaignLoader.load(configuration.campaignFile());
             demand = ScenarioDemand.of(profile);
             MixSurvivalCheck.check(profile);
-            SeatedAccounts seated = SeatedAccounts.of(profile);
-            census = WarmStartCensus.of(profile, seated);
+            playing = PlayingAccounts.of(profile, campaign);
+            census = WarmStartCensus.of(profile, playing);
             census.check();
             runDirectory = configuration.resultsDirectory().toAbsolutePath()
                     .resolve(profile.name() + "-" + runStamp);
+            // The registry holds the accounts this run plays and no others: the choice rule that
+            // decides who signs in next picks among them, so a seat is never taken by an account
+            // the census left unstocked (DR-8).
             ScenarioWiring wiring = new ScenarioWiring(
-                    new SessionRegistry(AccountPool.members()), seated,
+                    new SessionRegistry(playing.members()), playing,
                     tasks, directory, starvation, refusals, waits,
                     profile.hotSetSkew(), runStamp, configuration.provisionedPassword());
             plan = new ProfilePlan(configuration.baseUrl(), profile, wiring)
@@ -103,7 +107,9 @@ public final class ProfileRun {
         // The population the profile needs, established before the window and outside the test
         // plan: the registry starts the run knowing the stand, and no sample of the capture is
         // spent bringing the stand about (DR-6).
-        System.out.println("the census of the profile \"" + profile.name() + "\" is "
+        System.out.println("the profile \"" + profile.name() + "\" is played by "
+                + playing.members().size() + " account(s) of the pool, "
+                + campaign.playersPerSeat() + " per seat; its census is "
                 + census.tasks() + " task(s) over " + census.buckets().size() + " bucket(s)");
         WarmStart.Result warmStart = new WarmStart(configuration.baseUrl(),
                 configuration.provisionedPassword(), runStamp, census, tasks, directory)
@@ -119,7 +125,7 @@ public final class ProfileRun {
 
         Files.createDirectories(runDirectory);
         LoadProfileDescription
-                .of(profile, demand, census, warmStart, serviceLevels, runStamp, sutVersion)
+                .of(profile, campaign, demand, playing, census, warmStart, runStamp, sutVersion)
                 .writeTo(runDirectory.resolve(DESCRIPTION_FILE));
 
         System.out.println("driving " + configuration.baseUrl() + " under the profile \""
@@ -127,12 +133,13 @@ public final class ProfileRun {
                 + " virtual users, ramp " + profile.rampSeconds() + " s, steady window "
                 + profile.steadyWindowMinutes() + " min");
         System.out.println("the run's artifacts land in " + runDirectory
-                + "; it is judged by the service levels in " + configuration.serviceLevelsFile());
+                + "; it is judged by the service levels of the campaign in "
+                + configuration.campaignFile());
 
         TestPlanStats stats = plan.runIn(new EmbeddedJmeterEngine());
 
-        String report = report(profile, census, warmStart, sutVersion, runStamp, stats, starvation,
-                refusals, waits.verdict(serviceLevels));
+        String report = report(profile, campaign, playing, census, warmStart, sutVersion, runStamp,
+                stats, starvation, refusals, waits.verdict(campaign.serviceLevels()));
         System.out.println(report);
         Files.writeString(runDirectory.resolve(REPORT_FILE), report);
 
@@ -175,9 +182,9 @@ public final class ProfileRun {
      * includes the three screens that refuse under a successful status - while a refusal is a
      * status the application answered a request with.
      */
-    private static String report(LoadProfile profile, WarmStartCensus census,
-            WarmStart.Result warmStart, String sutVersion, String runStamp, TestPlanStats stats,
-            StarvationLedger starvation, RefusalLedger refusals,
+    private static String report(LoadProfile profile, Campaign campaign, PlayingAccounts playing,
+            WarmStartCensus census, WarmStart.Result warmStart, String sutVersion, String runStamp,
+            TestPlanStats stats, StarvationLedger starvation, RefusalLedger refusals,
             ServiceLevelLedger.Verdict waits) {
         StringBuilder report = new StringBuilder();
         report.append(String.format(Locale.ENGLISH,
@@ -186,6 +193,10 @@ public final class ProfileRun {
         report.append(String.format(Locale.ENGLISH,
                 "  %d virtual users, ramp %d s, steady window %d min%n",
                 profile.virtualUsers(), profile.rampSeconds(), profile.steadyWindowMinutes()));
+        report.append(String.format(Locale.ENGLISH,
+                "  the rotation: %d account(s) play, %d per seat%n",
+                playing.members().size(), campaign.playersPerSeat()));
+        report.append(playing.statement());
         report.append(String.format(Locale.ENGLISH,
                 "  warm start: a census of %d task(s) over %d bucket(s); the stand held %d task(s),"
                         + " %d were read and %d created%n",

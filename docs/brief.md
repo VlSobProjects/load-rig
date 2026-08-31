@@ -18,13 +18,14 @@ capture extraction and the triage logic all belong to the other two projects.
 ## The artifacts a run leaves
 
 - **The load-profile description** — what the run was meant to apply: operations, target rates,
-  ramp, the population under the load — the census the profile needed, and the number of tasks the
-  stand was measured to hold before the window — the service levels the run is judged by, as the
-  campaign fixed them, because a capture judged against figures nobody wrote down cannot be re-read
-  — and the version of the SUT under test, read from the stand's information endpoint once before
-  the window opens — outside the task surface and outside the result log, so that asking costs the
-  capture no sample — and recorded as unknown only when the stand does not answer; authored per
-  variant, JSON, written before the load starts so a dying injector still leaves it.
+  ramp, the population under the load — the census the profile needed, the rotation of accounts that
+  played the window, and the number of tasks the stand was measured to hold before it — the service
+  levels the run is judged by, as the campaign fixed them, because a capture judged against figures
+  nobody wrote down cannot be re-read — and the version of the SUT under test, read from the stand's
+  information endpoint once before the window opens — outside the task surface and outside the
+  result log, so that asking costs the capture no sample — and recorded as unknown only when the
+  stand does not answer; authored per variant, JSON, written before the load starts so a dying
+  injector still leaves it.
 - **The JTL result log** — the canonical injector export, fixed by the workflow-engine decision
   of 2026-08-28: per-sample timestamped records from which achieved intensity over time, a flood
   of one operation and the moment the injector's own data stops are all computable. The
@@ -66,7 +67,9 @@ configuration, never implicit constants.
   another begins, at a share of the iterations the profile states and with the account that signs
   in next chosen from the rig's own registry by what it holds, so those accounts are more than the
   seats a step holds at once, and an account between sessions is waiting its turn rather than
-  absent (DR-8). What the window adds to the table
+  absent (DR-8). How many more is the campaign's stated depth and not a step's business: the ratio
+  between the people who play and the seats they rotate through is what decides how wide the
+  working set is, so it is fixed for every step of a campaign. What the window adds to the table
   itself is published as a fact of the capture; how much the stand holds when the window opens is
   the campaign's own stated figure, which the warm start levels to in both directions, so that the
   steps of one campaign differ in intensity alone.
@@ -101,12 +104,13 @@ configuration, never implicit constants.
   from what the system's authors would price it at — and travels to the SUT project through the
   desk as a fact of the campaign rather than as a question. Signing out is the first of them. They
   are therefore the configuration of a campaign and not of a profile — one file every run of it
-  reads — and each run times every sample the result log carries into the band of the act that
-  produced it and states the percentile it realized against the figure, by a named percentile
-  method. A breach is a finding published with the capture and never a failure of the run: the
-  injector-side variants are meant to breach. And it is half a verdict by construction — the
-  viability criteria are these levels together with the application's log staying quiet and the
-  throttled-period counter staying flat, and those two are read on the stand, because the rig
+  reads, which states the depth of the rotation beside them for the same reason — and each run
+  times every sample the result log carries into the band of the act that produced it and states
+  the percentile it realized against the figure, by a named percentile method. A breach is a
+  finding published with the capture and never a failure of the run: the injector-side variants
+  are meant to breach. And it is half a verdict by construction — the viability criteria are these
+  levels together with the application's log staying quiet and the throttled-period counter
+  staying flat, and those two are read on the stand, because the rig
   drives no operational endpoint. A campaign that searches for the maximum is judged by figures of
   its own, derived as one multiple of what the same stand answered when it was quiet, because the
   chosen figures are met by orders of magnitude and a search judged by them would terminate past

@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import loadrig.model.AccountPool;
 import loadrig.model.Role;
+import loadrig.model.profile.Campaign;
+import loadrig.model.profile.CampaignLoader;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.profile.ScenarioName;
@@ -98,16 +100,21 @@ class ProfilePlanTest {
                 new AccountPool.Member("admin-01", Role.ADMINISTRATOR));
 
         IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
-                () -> SeatedAccounts.of(profile, oneOfEachRole));
+                () -> PlayingAccounts.of(profile, aCampaign(), oneOfEachRole));
 
         assertTrue(refusal.getMessage().contains("starve"),
                 "the refusal must state the consequence: " + refusal.getMessage());
     }
 
+    private static Campaign aCampaign() {
+        return CampaignLoader.load(Path.of("profiles", "campaign.json"));
+    }
+
     private static ScenarioWiring poolWiring() {
         LoadProfile profile = ProfileLoader.load(Path.of("profiles", "day.json"));
-        return new ScenarioWiring(new SessionRegistry(AccountPool.members()),
-                SeatedAccounts.of(profile), new TaskRegistry(), new UserDirectory(),
+        PlayingAccounts playing = PlayingAccounts.of(profile, aCampaign());
+        return new ScenarioWiring(new SessionRegistry(playing.members()),
+                playing, new TaskRegistry(), new UserDirectory(),
                 new StarvationLedger(), new RefusalLedger(), new ServiceLevelLedger(),
                 profile.hotSetSkew(), A_RUN, A_PASSWORD);
     }

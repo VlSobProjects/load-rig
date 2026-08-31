@@ -5,12 +5,16 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import loadrig.model.Role;
+import loadrig.model.profile.Campaign;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ScenarioName;
 import loadrig.model.profile.ServiceLevelBand;
 import loadrig.model.profile.ServiceLevels;
 import loadrig.model.profile.StepMix;
+import loadrig.model.scenario.PlayingAccounts;
 import loadrig.model.scenario.ScenarioDemand;
 import loadrig.model.scenario.WarmStartCensus;
 import loadrig.model.step.StepKind;
@@ -25,7 +29,9 @@ import loadrig.model.step.StepKind;
  *
  * <p>The service levels are here because they are chosen rather than measured: a capture judged
  * against figures nobody wrote down cannot be re-read later, and re-reading old captures is what
- * keeping them is for.
+ * keeping them is for. The rotation is here for the same reason: how many people played a window
+ * decides how wide the working set was, so two captures of one intensity over rotations of
+ * different depths are not comparable, and nothing in the result log says which was which.
  *
  * <p>It is written before the load starts: a run that dies mid-way still leaves the statement of
  * what it was trying to do, and the dying injector is one of the very variants this rig exists to
@@ -44,6 +50,7 @@ public record LoadProfileDescription(
         LoadProfile.HotSetSkew hotSetSkew,
         int endingASessionPercent,
         Map<String, Integer> scenarioPopulation,
+        Rotation rotation,
         TargetRates targetRatesPerMinute,
         Population population,
         ServiceLevelsApplied serviceLevels) {
@@ -73,6 +80,25 @@ public record LoadProfileDescription(
             double deletingATask,
             double settlements,
             double sessionsGivenUp) {
+    }
+
+    /**
+     * The people the run played, as against the seats its populations held at once: the depth the
+     * campaign states, the accounts that depth produces and how they fall by role. An account
+     * between sessions is waiting its turn rather than absent, so all of them are part of the
+     * working set the stand had to hold (DR-8).
+     */
+    public record Rotation(int playersPerSeat, int accountsPlaying,
+            Map<String, Integer> playersByRole) {
+
+        static Rotation of(Campaign campaign, PlayingAccounts playing) {
+            Map<String, Integer> byRole = new LinkedHashMap<>();
+            for (Role role : Role.values()) {
+                byRole.put(role.name().toLowerCase(Locale.ENGLISH),
+                        playing.names(role).size());
+            }
+            return new Rotation(campaign.playersPerSeat(), playing.members().size(), byRole);
+        }
     }
 
     /**
@@ -108,9 +134,9 @@ public record LoadProfileDescription(
         }
     }
 
-    public static LoadProfileDescription of(LoadProfile profile, ScenarioDemand demand,
-            WarmStartCensus census, WarmStart.Result warmStart, ServiceLevels serviceLevels,
-            String runStamp, String sutVersion) {
+    public static LoadProfileDescription of(LoadProfile profile, Campaign campaign,
+            ScenarioDemand demand, PlayingAccounts playing, WarmStartCensus census,
+            WarmStart.Result warmStart, String runStamp, String sutVersion) {
         TargetRates targets = new TargetRates(
                 demand.stepsPerMinute(),
                 demand.rateOf(StepKind.LOOKING_AT_A_LIST),
@@ -139,11 +165,12 @@ public record LoadProfileDescription(
                 profile.hotSetSkew(),
                 profile.endingASessionPercent(),
                 populations,
+                Rotation.of(campaign, playing),
                 targets,
                 new Population(census.tasks(), census.buckets().size(),
                         warmStart.tasksOnTheStand(), warmStart.read(), warmStart.created(),
                         demand.tableGrowthOverWindow()),
-                ServiceLevelsApplied.of(serviceLevels));
+                ServiceLevelsApplied.of(campaign.serviceLevels()));
     }
 
     public void writeTo(Path file) {

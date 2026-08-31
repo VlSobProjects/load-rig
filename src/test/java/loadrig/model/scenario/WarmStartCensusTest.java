@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import loadrig.model.profile.Campaign;
+import loadrig.model.profile.CampaignLoader;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.profile.ScenarioName;
@@ -21,9 +23,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Holds the census against the day profile's own arithmetic, and against the two properties that
+ * Holds the census against the day profile's own arithmetic, and against the three properties that
  * make it worth computing at all: it degenerates to nothing on a stand that already holds the
- * population, and it scales with the profile instead of being restated for every variant.
+ * population, it scales with the profile instead of being restated for every variant, and it
+ * stocks every account of the campaign's rotation rather than the seated few (DR-8).
+ *
+ * <p>The arithmetic is stated over a campaign that rotates one account through each seat, so that
+ * the figures below are the profile's own and a change of the repository's stated depth does not
+ * silently rewrite them. The rotation has a test of its own.
  */
 class WarmStartCensusTest {
 
@@ -115,6 +122,43 @@ class WarmStartCensusTest {
     }
 
     @Test
+    @DisplayName("the census stocks everybody who plays, not everybody who sits at once")
+    void theCensusFollowsTheRotationAndNotTheSeats() {
+        WarmStartCensus threeDeep =
+                censusOf(ProfileLoader.load(Path.of("profiles", "day.json")), 3);
+
+        Set<String> workers = threeDeep.buckets().stream()
+                .filter(bucket -> bucket.relation() == ActingParty.THE_ASSIGNEE)
+                .map(WarmStartCensus.Bucket::actor)
+                .collect(Collectors.toSet());
+
+        assertEquals(15, workers.size(),
+                "five seats rotating through three accounts each are fifteen people, and an"
+                        + " account between sessions is waiting its turn rather than absent");
+        assertTrue(threeDeep.tasks() > day.tasks(),
+                "the working set the stand must hold is as wide as the people who play, which is"
+                        + " the cost DR-8 names and the whole point of it");
+        assertEquals(stockOf(day, "worker-01", TaskStatus.OPEN),
+                stockOf(threeDeep, "worker-01", TaskStatus.OPEN),
+                "a player is drawn from less often over the window, but at the seat's own rate"
+                        + " while it sits there, so it holds what one stint drains - stocking it"
+                        + " for the window's average alone is what left the first rotated run"
+                        + " with skipped transitions");
+    }
+
+    @Test
+    @DisplayName("the shorter the stint, the less a player has to hold when it takes its seat")
+    void theStockFollowsHowLongASeatIsHeld() {
+        LoadProfile stintsThatEndSoon = dayGivingUpSessionsAt(20);
+        LoadProfile stintsThatLast = dayGivingUpSessionsAt(2);
+
+        assertTrue(censusOf(stintsThatEndSoon, 3).tasks() < censusOf(stintsThatLast, 3).tasks(),
+                "an account that hands its seat on after a few steps drains its bucket by that"
+                        + " much and no more; one that holds the seat for minutes drains it at the"
+                        + " seat's rate all the while, and the stock is what covers that");
+    }
+
+    @Test
     void aCensusNoWarmStartCouldBringAboutIsRefused() {
         WarmStartCensus overTheCeiling = censusOf(profileOf(10, 5, 3, 1, 1, 5000));
 
@@ -127,16 +171,38 @@ class WarmStartCensusTest {
     }
 
     private static WarmStartCensus censusOf(LoadProfile profile) {
-        return WarmStartCensus.of(profile, SeatedAccounts.of(profile));
+        return censusOf(profile, 1);
+    }
+
+    private static WarmStartCensus censusOf(LoadProfile profile, int playersPerSeat) {
+        Campaign campaign = new Campaign(playersPerSeat,
+                CampaignLoader.load(Path.of("profiles", "campaign.json")).serviceLevels());
+        return WarmStartCensus.of(profile, PlayingAccounts.of(profile, campaign));
     }
 
     private int stockOf(String actor, TaskStatus status) {
-        return day.buckets().stream()
+        return stockOf(day, actor, status);
+    }
+
+    private static int stockOf(WarmStartCensus census, String actor, TaskStatus status) {
+        return census.buckets().stream()
                 .filter(bucket -> bucket.actor().equals(actor) && bucket.status() == status)
                 .findFirst()
                 .orElseThrow(() -> new AssertionError(
                         "the census states no bucket of " + status + " for " + actor))
                 .tasks();
+    }
+
+    /** The day profile's shape with another share of iterations ending their session. */
+    private static LoadProfile dayGivingUpSessionsAt(int percent) {
+        return new LoadProfile("day", 10, 30, 10,
+                new LoadProfile.ThinkTime(3, 7),
+                new StepMix(37, 22, 13, 12, 10, 5, 1),
+                new LoadProfile.HotSetSkew(70, 80), percent,
+                Map.of(ScenarioName.WORKER, 5,
+                        ScenarioName.MANAGER, 3,
+                        ScenarioName.ADMINISTRATOR, 1,
+                        ScenarioName.DISCUSSION, 1));
     }
 
     /** The day profile's shape at another size, for the properties that are about scale. */
