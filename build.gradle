@@ -25,10 +25,11 @@ tasks.named('run') {
 }
 
 tasks.register('validateProfile', JavaExec) {
-    description = 'Parses and checks a profile file without applying load'
+    description = 'Parses and checks a profile file and the campaign service levels, applying no load'
     group = 'application'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'loadrig.run.ProfileValidation'
+    systemProperties System.properties.findAll { name, value -> name.startsWith('loadrig.') }
     // The file under validation is stated on the command line; the repository's own day
     // profile is the one a bare invocation checks.
     args = [System.getProperty('loadrig.profile', 'profiles/day.json')]

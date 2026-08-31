@@ -5,7 +5,10 @@ import static us.abstracta.jmeter.javadsl.JmeterDsl.httpSampler;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.uniformRandomTimer;
 
 import java.time.Duration;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import loadrig.model.AnswerShape;
 import loadrig.model.Correlation;
@@ -32,6 +35,8 @@ public final class StepKit {
 
     private final String baseUrl;
     private final LoadProfile.ThinkTime thinkTime;
+    private final Map<DslHttpSampler, String> namesOfRequests = new IdentityHashMap<>();
+    private final Map<String, StepKind> kindsByLabel = new LinkedHashMap<>();
 
     public StepKit(String baseUrl, LoadProfile.ThinkTime thinkTime) {
         this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl");
@@ -64,6 +69,7 @@ public final class StepKit {
         for (Correlation.Rule extraction : extractions) {
             request.children(extraction.extractor());
         }
+        namesOfRequests.put(request, name);
         return request;
     }
 
@@ -83,8 +89,44 @@ public final class StepKit {
         if (requests.length == 0) {
             throw new IllegalArgumentException("a step without a request is not a step");
         }
+        declareKind(kind, requests);
         requests[0].children(thinkTimer());
         return new Step(weight, kind, gate, List.of(requests));
+    }
+
+    /**
+     * The kind of requests that belong to no step of a scenario's iteration - the sign-ins, which
+     * are the rig's own act and no row of the mix - stated so that the plan's labels are complete.
+     * A step's requests are declared by {@link #step}, and every request the kit builds passes
+     * through one of the two: a sample the plan cannot name is judged by the hard ceiling alone
+     * and counted apart, and this is what keeps that count at zero for the steps the rig means to
+     * perform.
+     */
+    public void declareKind(StepKind kind, DslHttpSampler... requests) {
+        Objects.requireNonNull(kind, "kind");
+        for (DslHttpSampler request : requests) {
+            String label = namesOfRequests.get(request);
+            if (label == null) {
+                throw new IllegalArgumentException("a request this kit did not build cannot be"
+                        + " declared under a step kind: its label is not the kit's to know");
+            }
+            StepKind declared = kindsByLabel.putIfAbsent(label, kind);
+            if (declared != null && declared != kind) {
+                throw new IllegalArgumentException("the request \"" + label + "\" is declared"
+                        + " both as " + declared + " and as " + kind + "; one label is one act,"
+                        + " and a label two kinds share is judged in whichever band was built"
+                        + " first");
+            }
+        }
+    }
+
+    /**
+     * The kind of every request the kit built, by the label the result log carries. It is how a
+     * sample is attributed to the act a person performed without the label having to spell the
+     * act out: the plan states the kinds, and the label is only a name.
+     */
+    public Map<String, StepKind> stepKindsByLabel() {
+        return Map.copyOf(kindsByLabel);
     }
 
     /** The pause a virtual user thinks before a step, drawn from the profile's bounds. */

@@ -19,19 +19,21 @@ capture extraction and the triage logic all belong to the other two projects.
 
 - **The load-profile description** — what the run was meant to apply: operations, target rates,
   ramp, the population under the load — the census the profile needed, and the number of tasks the
-  stand was measured to hold before the window — and the version of the SUT under test, read from
-  the stand's information endpoint once before the window opens — outside the task surface and
-  outside the result log, so that asking costs the capture no sample — and recorded as unknown only
-  when the stand does not answer; authored per variant, JSON, written before the load starts so a
-  dying injector still leaves it.
+  stand was measured to hold before the window — the service levels the run is judged by, as the
+  campaign fixed them, because a capture judged against figures nobody wrote down cannot be re-read
+  — and the version of the SUT under test, read from the stand's information endpoint once before
+  the window opens — outside the task surface and outside the result log, so that asking costs the
+  capture no sample — and recorded as unknown only when the stand does not answer; authored per
+  variant, JSON, written before the load starts so a dying injector still leaves it.
 - **The JTL result log** — the canonical injector export, fixed by the workflow-engine decision
   of 2026-08-28: per-sample timestamped records from which achieved intensity over time, a flood
   of one operation and the moment the injector's own data stops are all computable. The
   timestamp semantics (`sampleresult.timestamp.start`) is set explicitly in the rig's
   configuration, never left to a default.
 - **The run report** — what the run realized against what it intended: the sample and error
-  counts and the starvation ledger's skip counts by step, so a realized mix that drifted from
-  the profile names where. The harness's console statement, kept beside the capture for
+  counts, the starvation ledger's skip counts by step, so a realized mix that drifted from
+  the profile names where, and the wait each band of the service levels realized against the
+  figure it was held to. The harness's console statement, kept beside the capture for
   analysis.
 - No live push of raw samples into a time-series store. The known pathology — unique
   nano-second timestamps killing the store's aggregation model, and spikes attributed to their
@@ -85,7 +87,15 @@ configuration, never implicit constants.
   log (DR-6). It degenerates to pure reading on a seeded stand, so the seeding costs it no
   rewrite.
 - **The service levels.** Chosen, not measured, and a calibration lever: fixed before a
-  campaign, recorded with every capture, held across the baseline and the faulted run alike.
+  campaign, recorded with every capture, held across the baseline and the faulted run alike. They
+  are therefore the configuration of a campaign and not of a profile — one file every run of it
+  reads — and each run times every sample the result log carries into the band of the act that
+  produced it and states the percentile it realized against the figure, by a named percentile
+  method. A breach is a finding published with the capture and never a failure of the run: the
+  injector-side variants are meant to breach. And it is half a verdict by construction — the
+  viability criteria are these levels together with the application's log staying quiet and the
+  throttled-period counter staying flat, and those two are read on the stand, because the rig
+  drives no operational endpoint.
 
 ## What this project must answer back
 

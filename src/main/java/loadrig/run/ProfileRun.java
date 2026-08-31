@@ -11,12 +11,15 @@ import java.util.Map;
 import loadrig.model.AccountPool;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
+import loadrig.model.profile.ServiceLevels;
+import loadrig.model.profile.ServiceLevelsLoader;
 import loadrig.model.scenario.MixSurvivalCheck;
 import loadrig.model.scenario.ProfilePlan;
 import loadrig.model.scenario.RefusalLedger;
 import loadrig.model.scenario.ScenarioDemand;
 import loadrig.model.scenario.ScenarioWiring;
 import loadrig.model.scenario.SeatedAccounts;
+import loadrig.model.scenario.ServiceLevelLedger;
 import loadrig.model.scenario.StarvationLedger;
 import loadrig.model.scenario.WarmStartCensus;
 import loadrig.registry.SessionRegistry;
@@ -39,7 +42,9 @@ import us.abstracta.jmeter.javadsl.core.engines.EmbeddedJmeterEngine;
  *
  * <p>The artifacts stay on disk whatever the run's outcome, because a spoiled run is evidence
  * too; a run with refused samples still says so loudly and exits non-zero, so that a stand
- * window is never trusted by mistake.
+ * window is never trusted by mistake. A breached service level is not such a case: it is a
+ * finding about the system, published in the description's levels and the report's verdict, and
+ * the faulted variants this rig produces are meant to breach.
  */
 public final class ProfileRun {
 
@@ -63,16 +68,19 @@ public final class ProfileRun {
         String runStamp = ZonedDateTime.now(ZoneOffset.UTC).format(RUN_STAMP);
 
         LoadProfile profile;
+        ServiceLevels serviceLevels;
         ScenarioDemand demand;
         WarmStartCensus census;
         StarvationLedger starvation = new StarvationLedger();
         RefusalLedger refusals = new RefusalLedger();
+        ServiceLevelLedger waits = new ServiceLevelLedger();
         TaskRegistry tasks = new TaskRegistry();
         UserDirectory directory = new UserDirectory();
         DslTestPlan plan;
         Path runDirectory;
         try {
             profile = ProfileLoader.load(profileFile);
+            serviceLevels = ServiceLevelsLoader.load(configuration.serviceLevelsFile());
             demand = ScenarioDemand.of(profile);
             MixSurvivalCheck.check(profile);
             SeatedAccounts seated = SeatedAccounts.of(profile);
@@ -82,7 +90,7 @@ public final class ProfileRun {
                     .resolve(profile.name() + "-" + runStamp);
             ScenarioWiring wiring = new ScenarioWiring(
                     new SessionRegistry(AccountPool.members()), seated,
-                    tasks, directory, starvation, refusals,
+                    tasks, directory, starvation, refusals, waits,
                     profile.hotSetSkew(), runStamp, configuration.provisionedPassword());
             plan = new ProfilePlan(configuration.baseUrl(), profile, wiring)
                     .plan(runDirectory.toString(), SAMPLES_FILE);
@@ -110,19 +118,21 @@ public final class ProfileRun {
                 .orElseGet(() -> SutVersion.askTheStand(configuration.baseUrl()));
 
         Files.createDirectories(runDirectory);
-        LoadProfileDescription.of(profile, demand, census, warmStart, runStamp, sutVersion)
+        LoadProfileDescription
+                .of(profile, demand, census, warmStart, serviceLevels, runStamp, sutVersion)
                 .writeTo(runDirectory.resolve(DESCRIPTION_FILE));
 
         System.out.println("driving " + configuration.baseUrl() + " under the profile \""
                 + profile.name() + "\" (" + profileFile + "): " + profile.virtualUsers()
                 + " virtual users, ramp " + profile.rampSeconds() + " s, steady window "
                 + profile.steadyWindowMinutes() + " min");
-        System.out.println("the run's artifacts land in " + runDirectory);
+        System.out.println("the run's artifacts land in " + runDirectory
+                + "; it is judged by the service levels in " + configuration.serviceLevelsFile());
 
         TestPlanStats stats = plan.runIn(new EmbeddedJmeterEngine());
 
         String report = report(profile, census, warmStart, sutVersion, runStamp, stats, starvation,
-                refusals);
+                refusals, waits.verdict(serviceLevels));
         System.out.println(report);
         Files.writeString(runDirectory.resolve(REPORT_FILE), report);
 
@@ -155,9 +165,10 @@ public final class ProfileRun {
     }
 
     /**
-     * What the run realized against what it intended: the counts, the refusals and the starvation
-     * ledger. A skipped gate is the run's timing, not an error, but a drifted realized mix must
-     * name where it drifted instead of keeping the drift a secret of the log.
+     * What the run realized against what it intended: the counts, the refusals, the waits against
+     * the service levels and the starvation ledger. A skipped gate is the run's timing, not an
+     * error, but a drifted realized mix must name where it drifted instead of keeping the drift a
+     * secret of the log.
      *
      * <p>A failed sample and a refusal are counted separately and named apart, because they are
      * not the same thing: a sample fails when its content assertion is not satisfied - which
@@ -166,7 +177,8 @@ public final class ProfileRun {
      */
     private static String report(LoadProfile profile, WarmStartCensus census,
             WarmStart.Result warmStart, String sutVersion, String runStamp, TestPlanStats stats,
-            StarvationLedger starvation, RefusalLedger refusals) {
+            StarvationLedger starvation, RefusalLedger refusals,
+            ServiceLevelLedger.Verdict waits) {
         StringBuilder report = new StringBuilder();
         report.append(String.format(Locale.ENGLISH,
                 "the run %s-%s is complete: profile \"%s\", SUT version %s%n",
@@ -182,6 +194,7 @@ public final class ProfileRun {
         report.append(String.format(Locale.ENGLISH, "  %d samples, %d of them failed%n",
                 stats.overall().samplesCount(), stats.overall().errorsCount()));
         report.append(refusals(refusals));
+        report.append(serviceLevels(waits));
         Map<String, Long> skips = starvation.skips();
         if (skips.isEmpty()) {
             report.append("  starvation ledger: every gate found its pick").append(System.lineSeparator());
@@ -194,6 +207,50 @@ public final class ProfileRun {
                 .append(SAMPLES_FILE).append(", ").append(REPORT_FILE)
                 .append(System.lineSeparator());
         return report.toString();
+    }
+
+    /**
+     * What the people this run played actually waited, band by band, against the levels the
+     * campaign fixed. A breach is reported as a finding and nothing else happens: the run is not
+     * failed by it, because a faulted variant is meant to breach and a clean baseline that
+     * breaches has measured a system worth the reading.
+     *
+     * <p>It is half a verdict and says so. The specification's viability criteria are these
+     * levels together with the application's log staying quiet and the throttled-period counter
+     * staying flat, and the last two are read on the stand: the injector drives no operational
+     * endpoint and cannot see them.
+     */
+    private static String serviceLevels(ServiceLevelLedger.Verdict waits) {
+        StringBuilder lines = new StringBuilder();
+        lines.append(String.format(Locale.ENGLISH,
+                "  service levels, %dth percentile by nearest rank, against a hard ceiling of"
+                        + " %d ms:%n",
+                ServiceLevels.PERCENTILE, waits.hardCeilingMillis()));
+        for (ServiceLevelLedger.BandResult band : waits.bands()) {
+            if (!band.exercised()) {
+                lines.append(String.format(Locale.ENGLISH,
+                        "    %s: not exercised, level %d ms%n",
+                        band.band().key(), band.levelMillis()));
+                continue;
+            }
+            lines.append(String.format(Locale.ENGLISH,
+                    "    %s: %d ms against %d ms over %d sample(s), worst %d ms - %s%n",
+                    band.band().key(), band.percentileMillis(), band.levelMillis(), band.samples(),
+                    band.worstMillis(), band.breached() ? "BREACHED" : "met"));
+        }
+        lines.append(String.format(Locale.ENGLISH,
+                "    the worst wait of the run was %d ms; %d sample(s) passed the ceiling%n",
+                waits.worstMillis(), waits.samplesOverTheCeiling()));
+        if (waits.samplesOutsideTheBands() > 0) {
+            lines.append(String.format(Locale.ENGLISH,
+                    "    %d sample(s) belong to no band and were held to the ceiling alone; a step"
+                            + " the plan cannot name is the rig's own defect%n",
+                    waits.samplesOutsideTheBands()));
+        }
+        lines.append("    the other half of the viability criteria - the application's log quiet"
+                + " and the throttled-period counter flat - is read on the stand, not here")
+                .append(System.lineSeparator());
+        return lines.toString();
     }
 
     /**

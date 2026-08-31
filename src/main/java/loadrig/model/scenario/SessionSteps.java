@@ -11,6 +11,7 @@ import loadrig.model.Correlation;
 import loadrig.model.Role;
 import loadrig.model.SutSurface;
 import loadrig.model.step.ContentExpectation;
+import loadrig.model.step.StepKind;
 import loadrig.model.step.StepKit;
 import loadrig.registry.RegistryStarvedException;
 import loadrig.registry.SessionRegistry;
@@ -182,6 +183,10 @@ final class SessionSteps {
         if (role == Role.MANAGER) {
             signsIn.children(directoryHarvest());
         }
+        // No row of the mix, but two samples a person waits through: they are declared under the
+        // session-keeping kind so the result log's sign-ins are judged in the band the
+        // specification gives them.
+        kit.declareKind(StepKind.SESSION_KEEPING, opensTheLoginPage, signsIn);
         return ifController(s -> Boolean.parseBoolean(s.vars.get(NEEDS_SIGN_IN_FLAG)),
                 opensTheLoginPage, signsIn);
     }
