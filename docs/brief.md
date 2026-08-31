@@ -116,7 +116,10 @@ The first four were answered through the desk on 2026-08-29: the account pool an
 check encode answers one and two, the task registry's hot set is answer three, and the profile
 file is answer four. The question asked back — whether the seeded history can pre-register hot
 tasks — was answered the same day: it cannot, and the rig reads the stand from the list instead.
-The fifth is owed after the first calibrated run.
+The fifth went back on 2026-08-31, measured rather than estimated: at ten virtual users every band
+is met by between fourteen and seventy times, so the assumed ceiling of twenty is answered as no
+maximum at all. Three things travel back with it — the half of the verdict the rig cannot read and
+asks the other project to close over the same window, and the two questions below.
 
 ## The injector-side defect variants
 
@@ -135,7 +138,16 @@ Each is applied deliberately, per variant, and never leaks into a clean capture.
 
 Carried from the exchange documents; settled as the work meets them:
 
-- Whether the allotted core pair and memory carry the intended profile at twenty virtual users.
+- Whether the allotted core pair and memory carry the intended profile at twenty virtual users. At
+  ten they are nowhere near a limit; the stepped search takes the generator well past twenty, and a
+  step whose achieved intensity fell short of its target is discarded rather than judged, so the
+  answer arrives as a discarded step rather than as a quiet distortion.
+- Whether the application's core set may be narrowed for a later campaign — asked 2026-08-31, and
+  asked as an option rather than a request. Only the set may move: a quota that binds raises the
+  throttled-period counter, which the calibration rule reads as a capture made of the limit.
+- What volume the report will scan once the seeding item chooses one, and whether the item that
+  reduces the report to an indexed query lands before or after it. The report's headroom is the
+  one measured figure that is a statement about the database rather than about the application.
 - Where the generator writes its artifacts during a run, given that the database's disk work is
   part of the evidence.
 - Whether the generator itself must be observed, and which project owns that collector.
