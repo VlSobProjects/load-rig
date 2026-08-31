@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
+import loadrig.model.profile.ServiceLevelBand;
+import loadrig.model.profile.ServiceLevels;
+import loadrig.model.profile.ServiceLevelsLoader;
 import loadrig.model.scenario.ScenarioDemand;
 import loadrig.model.scenario.SeatedAccounts;
 import loadrig.model.scenario.WarmStartCensus;
@@ -19,7 +22,8 @@ import org.junit.jupiter.api.io.TempDir;
  * Proves the description artifact against the repository's own day profile: the written JSON
  * carries the profile's stated facts, the run's identity, the computed target rates - the same
  * numbers the plan is built from, so the description can never state targets the run did not obey
- * - and the population the run established, measured rather than stated.
+ * - the population the run established, measured rather than stated, and the service levels the
+ * capture is judged by, which are chosen numbers and therefore have to travel with it.
  */
 class LoadProfileDescriptionTest {
 
@@ -123,6 +127,25 @@ class LoadProfileDescriptionTest {
         assertEquals(profile.virtualUsers(), seated);
     }
 
+    @Test
+    void theServiceLevelsTheRunIsJudgedByTravelWithTheCapture(@TempDir Path directory)
+            throws IOException {
+        LoadProfile profile = day();
+        ServiceLevels levels = campaignLevels();
+        Path file = directory.resolve("load-profile.json");
+
+        descriptionOf(profile).writeTo(file);
+
+        JsonNode judged = new ObjectMapper().readTree(file.toFile()).get("serviceLevels");
+        assertEquals(ServiceLevels.PERCENTILE, judged.get("percentile").asInt());
+        assertEquals(levels.hardCeilingMillis(), judged.get("hardCeilingMillis").asInt());
+        JsonNode byBand = judged.get("byBandMillis");
+        for (ServiceLevelBand band : ServiceLevelBand.values()) {
+            assertEquals(levels.levelOf(band), byBand.get(band.key()).asInt(),
+                    "the levels are published in the file's own spelling: " + byBand);
+        }
+    }
+
     private static LoadProfile day() {
         return ProfileLoader.load(Path.of("profiles", "day.json"));
     }
@@ -131,8 +154,12 @@ class LoadProfileDescriptionTest {
         return WarmStartCensus.of(profile, SeatedAccounts.of(profile));
     }
 
+    private static ServiceLevels campaignLevels() {
+        return ServiceLevelsLoader.load(Path.of("profiles", "service-levels.json"));
+    }
+
     private static LoadProfileDescription descriptionOf(LoadProfile profile) {
         return LoadProfileDescription.of(profile, ScenarioDemand.of(profile),
-                censusOf(profile), A_WARM_START, A_RUN, A_SUT_VERSION);
+                censusOf(profile), A_WARM_START, campaignLevels(), A_RUN, A_SUT_VERSION);
     }
 }

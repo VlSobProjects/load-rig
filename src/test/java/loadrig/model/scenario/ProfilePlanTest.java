@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import loadrig.model.AccountPool;
@@ -13,6 +14,7 @@ import loadrig.model.Role;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.profile.ScenarioName;
+import loadrig.model.profile.ServiceLevelBand;
 import loadrig.model.profile.StepMix;
 import loadrig.model.step.Step;
 import loadrig.model.step.StepKit;
@@ -65,6 +67,20 @@ class ProfilePlanTest {
     }
 
     @Test
+    void theAssembledPlanLeavesEveryBandWithAnActToJudge() {
+        LoadProfile profile = ProfileLoader.load(Path.of("profiles", "day.json"));
+        ScenarioWiring wiring = poolWiring();
+
+        new ProfilePlan(A_STACK, profile, wiring).plan("results", "a-run.jtl");
+
+        Collection<ServiceLevelBand> judged = wiring.serviceLevels().bandsByLabel().values();
+        for (ServiceLevelBand band : ServiceLevelBand.values()) {
+            assertTrue(judged.contains(band),
+                    "the day plan performs an act judged in " + band.key() + ": " + judged);
+        }
+    }
+
+    @Test
     void aProfileWhoseMixTheScenariosCannotReproduceNeverAssembles() {
         LoadProfile broken = dayProfileWithPopulations(3, 5, 1, 1);
 
@@ -92,8 +108,8 @@ class ProfilePlanTest {
         LoadProfile profile = ProfileLoader.load(Path.of("profiles", "day.json"));
         return new ScenarioWiring(new SessionRegistry(AccountPool.members()),
                 SeatedAccounts.of(profile), new TaskRegistry(), new UserDirectory(),
-                new StarvationLedger(), new RefusalLedger(), profile.hotSetSkew(), A_RUN,
-                A_PASSWORD);
+                new StarvationLedger(), new RefusalLedger(), new ServiceLevelLedger(),
+                profile.hotSetSkew(), A_RUN, A_PASSWORD);
     }
 
     private static LoadProfile dayProfileWithPopulations(int workers, int managers,

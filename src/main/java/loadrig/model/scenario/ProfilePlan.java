@@ -62,6 +62,10 @@ public final class ProfilePlan {
         // One record per user-visible step: a redirect the application answers with is part of
         // the step a person performed, and an own record beside it would double every rate.
         children.add(jtlWriter(jtlDirectory, jtlFileName).withSubResults(false));
+        // The labels the plan just built, with the kind of act behind each: the service-level
+        // ledger attributes every sample through this, and it is stated once the whole plan
+        // exists so that no group's steps are judged before its own are known.
+        wiring.serviceLevels().judgeByTheKindsOf(kit.stepKindsByLabel());
         return testPlan(children.toArray(new TestPlanChild[0]));
     }
 
@@ -78,7 +82,7 @@ public final class ProfilePlan {
             children.add(step.scheduled(100f * step.weight() / totalWeight));
         }
         children.add(session.setDown());
-        children.add(refusalTally());
+        children.add(perSampleTally());
         return threadGroup(scenario.name().key())
                 .rampToAndHold(population, Duration.ofSeconds(profile.rampSeconds()),
                         Duration.ofMinutes(profile.steadyWindowMinutes()))
@@ -86,18 +90,29 @@ public final class ProfilePlan {
     }
 
     /**
-     * The element that fills the refusal ledger. It sits in the group rather than on a sampler,
-     * so that it runs after every request the group makes and no step can be added that escapes
-     * it, and it reads exactly two things: the status the application answered with, and whether
-     * the thread held a token when it asked. The second is what splits the one refusal code that
-     * carries two causes, and it is knowable only here, inside the injector.
+     * The element that fills the two ledgers a sample feeds. It sits in the group rather than on
+     * a sampler, so that it runs after every request the group makes and no step can be added
+     * that escapes it.
+     *
+     * <p>The refusal ledger reads the status the application answered with and whether the thread
+     * held a token when it asked; the second is what splits the one refusal code that carries two
+     * causes, and it is knowable only here, inside the injector. The service-level ledger reads
+     * the label and the time the person waited, and takes only the samples the result log itself
+     * carries: the injector's own bookkeeping elements are marked ignored and are no wait
+     * anybody had.
      *
      * <p>It writes nothing into the sample and changes nothing about the run: the result log is
-     * unaffected, and the split lives in the report the harness writes beside it.
+     * unaffected, and what these two ledgers know lives in the report the harness writes beside
+     * it.
      */
-    private DslJsr223PostProcessor refusalTally() {
-        return jsr223PostProcessor(s -> wiring.refusals().answered(s.prev.getResponseCode(),
-                TransportContext.isAToken(s.vars.get(SessionSteps.SESSION_TOKEN_VARIABLE))));
+    private DslJsr223PostProcessor perSampleTally() {
+        return jsr223PostProcessor(s -> {
+            wiring.refusals().answered(s.prev.getResponseCode(),
+                    TransportContext.isAToken(s.vars.get(SessionSteps.SESSION_TOKEN_VARIABLE)));
+            if (!s.prev.isIgnore()) {
+                wiring.serviceLevels().took(s.prev.getSampleLabel(), s.prev.getTime());
+            }
+        });
     }
 
 }

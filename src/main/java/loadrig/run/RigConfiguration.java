@@ -25,6 +25,7 @@ public final class RigConfiguration {
 
     static final String BASE_URL_PROPERTY = "loadrig.baseUrl";
     static final String RESULTS_DIRECTORY_PROPERTY = "loadrig.results.directory";
+    static final String SERVICE_LEVELS_PROPERTY = "loadrig.serviceLevels";
     static final String VIRTUAL_USERS_PROPERTY = "loadrig.smoke.virtualUsers";
     static final String ITERATIONS_PROPERTY = "loadrig.smoke.iterations";
     static final String PROVISIONED_PASSWORD_PROPERTY = "loadrig.provisioning.password";
@@ -32,6 +33,7 @@ public final class RigConfiguration {
 
     private static final String DEFAULT_BASE_URL = "http://localhost:8080";
     private static final String DEFAULT_RESULTS_DIRECTORY = "results";
+    private static final String DEFAULT_SERVICE_LEVELS = "profiles/service-levels.json";
     private static final int DEFAULT_VIRTUAL_USERS = 2;
     private static final int DEFAULT_ITERATIONS = 1;
 
@@ -42,17 +44,19 @@ public final class RigConfiguration {
     private final Map<Role, Account> accounts;
     private final String provisionedPassword;
     private final String sutVersion;
+    private final Path serviceLevelsFile;
     private final Path resultsDirectory;
     private final int virtualUsers;
     private final int iterations;
 
     private RigConfiguration(String baseUrl, Map<Role, Account> accounts,
-            String provisionedPassword, String sutVersion, Path resultsDirectory,
-            int virtualUsers, int iterations) {
+            String provisionedPassword, String sutVersion, Path serviceLevelsFile,
+            Path resultsDirectory, int virtualUsers, int iterations) {
         this.baseUrl = baseUrl;
         this.accounts = accounts;
         this.provisionedPassword = provisionedPassword;
         this.sutVersion = sutVersion;
+        this.serviceLevelsFile = serviceLevelsFile;
         this.resultsDirectory = resultsDirectory;
         this.virtualUsers = virtualUsers;
         this.iterations = iterations;
@@ -68,6 +72,7 @@ public final class RigConfiguration {
                 accounts,
                 property(PROVISIONED_PASSWORD_PROPERTY, DEFAULT_PROVISIONED_PASSWORD),
                 System.getProperty(SUT_VERSION_PROPERTY),
+                Path.of(property(SERVICE_LEVELS_PROPERTY, DEFAULT_SERVICE_LEVELS)),
                 Path.of(property(RESULTS_DIRECTORY_PROPERTY, DEFAULT_RESULTS_DIRECTORY)),
                 number(VIRTUAL_USERS_PROPERTY, DEFAULT_VIRTUAL_USERS),
                 number(ITERATIONS_PROPERTY, DEFAULT_ITERATIONS));
@@ -94,6 +99,15 @@ public final class RigConfiguration {
      */
     public Optional<String> statedSutVersion() {
         return Optional.ofNullable(sutVersion).filter(stated -> !stated.isBlank());
+    }
+
+    /**
+     * The file the service levels of this campaign are read from. One file serves every profile a
+     * campaign runs: the levels are fixed before it and held across the baseline and the faulted
+     * run alike, and a run states another file only when it is another campaign.
+     */
+    public Path serviceLevelsFile() {
+        return serviceLevelsFile;
     }
 
     public Path resultsDirectory() {

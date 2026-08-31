@@ -44,6 +44,30 @@ class StepKitTest {
     }
 
     @Test
+    void theKitRemembersWhichActEachLabelBelongsTo() {
+        kit.step(4, StepKind.RUNNING_A_REPORT,
+                kit.pageRequest("someone runs the report", "/reports",
+                        ContentExpectation.rendersNoRefusalMark()));
+        var signsIn = kit.pageRequest("someone signs in", "/login",
+                ContentExpectation.renders("an authenticated screen", "action=\"/logout\""));
+        kit.declareKind(StepKind.SESSION_KEEPING, signsIn);
+
+        assertEquals(StepKind.RUNNING_A_REPORT,
+                kit.stepKindsByLabel().get("someone runs the report"));
+        assertEquals(StepKind.SESSION_KEEPING, kit.stepKindsByLabel().get("someone signs in"));
+    }
+
+    @Test
+    void oneLabelStandingForTwoActsIsRefused() {
+        var request = kit.pageRequest("someone does a thing", "/tasks",
+                ContentExpectation.rendersNoRefusalMark());
+        kit.declareKind(StepKind.LOOKING_AT_A_LIST, request);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> kit.declareKind(StepKind.RUNNING_A_REPORT, request));
+    }
+
+    @Test
     void aWeightlessStepAndAStepWithoutARequestAreRefused() {
         var request = kit.pageRequest("someone signs in", "/login",
                 ContentExpectation.renders("an authenticated screen", "action=\"/logout\""));

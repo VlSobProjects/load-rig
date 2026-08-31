@@ -9,7 +9,7 @@ import loadrig.registry.UserDirectory;
 
 /**
  * Everything a scenario acts through at run time: the registries of the injector JVM, the
- * user directory, the two ledgers of the run, the skew of the loaded profile, and the run's own
+ * user directory, the three ledgers of the run, the skew of the loaded profile, and the run's own
  * identity. One wiring serves one run; the scenarios share it, which is what makes the
  * discussion's several-people-on-one-task and the settle-your-own-creation relations possible
  * at all.
@@ -22,6 +22,7 @@ public final class ScenarioWiring {
     private final UserDirectory directory;
     private final StarvationLedger starvation;
     private final RefusalLedger refusals;
+    private final ServiceLevelLedger serviceLevels;
     private final LoadProfile.HotSetSkew skew;
     private final String runTag;
     private final String poolPassword;
@@ -29,13 +30,15 @@ public final class ScenarioWiring {
 
     public ScenarioWiring(SessionRegistry sessions, SeatedAccounts seated, TaskRegistry tasks,
             UserDirectory directory, StarvationLedger starvation, RefusalLedger refusals,
-            LoadProfile.HotSetSkew skew, String runTag, String poolPassword) {
+            ServiceLevelLedger serviceLevels, LoadProfile.HotSetSkew skew, String runTag,
+            String poolPassword) {
         this.sessions = Objects.requireNonNull(sessions, "sessions");
         this.seated = Objects.requireNonNull(seated, "seated");
         this.tasks = Objects.requireNonNull(tasks, "tasks");
         this.directory = Objects.requireNonNull(directory, "directory");
         this.starvation = Objects.requireNonNull(starvation, "starvation");
         this.refusals = Objects.requireNonNull(refusals, "refusals");
+        this.serviceLevels = Objects.requireNonNull(serviceLevels, "serviceLevels");
         this.skew = Objects.requireNonNull(skew, "skew");
         this.runTag = Objects.requireNonNull(runTag, "runTag");
         this.poolPassword = Objects.requireNonNull(poolPassword, "poolPassword");
@@ -68,6 +71,11 @@ public final class ScenarioWiring {
 
     public RefusalLedger refusals() {
         return refusals;
+    }
+
+    /** What the run's own people waited, timed into the bands the campaign fixed levels for. */
+    public ServiceLevelLedger serviceLevels() {
+        return serviceLevels;
     }
 
     public LoadProfile.HotSetSkew skew() {

@@ -31,7 +31,8 @@ The unit tests need no running SUT.
 Neither does validating a load profile: it parses the file, prints the rates the profile implies
 and the census a warm start would have to establish before the window, bucket by bucket, and
 refuses a profile whose population no warm start could bring about — all without applying any
-load. A broken profile is found before a stand window is spent on it.
+load. It reads the campaign's service levels in the same breath and prints them, so a broken
+profile and a broken criterion are both found before a stand window is spent on either.
 
 ```bash
 ./gradlew validateProfile                            # the repository's day profile
@@ -56,18 +57,31 @@ reads what the stand already holds from the list page ordered by due date and cr
 difference, so the mix holds from the first minute and no sample of the capture is spent
 establishing the population. Each run lays its artifacts into a directory of its own under the
 results root, named by the profile and the run's UTC stamp: `load-profile.json` — what the run was
-meant to apply, with the computed target rates, the census, the measured volume of the stand and
-the SUT version, written before the load starts; `samples.jtl` — the result log; `run-report.txt`
-— what the run realized, with the starvation ledger. A run with refused samples exits non-zero and
-leaves its artifacts in place.
+meant to apply, with the computed target rates, the census, the measured volume of the stand, the
+service levels it is judged by and the SUT version, written before the load starts; `samples.jtl`
+— the result log; `run-report.txt` — what the run realized, with the starvation ledger and the
+wait each service-level band realized against its figure. A run with refused samples exits
+non-zero and leaves its artifacts in place; a run that breaches a service level does not, because
+a breach is a finding about the system and the injector-side defect variants are meant to produce
+one.
 
 The warm start acts as the accounts the run signs in with, so the pool is provisioned first.
 
 ```bash
 ./gradlew runProfile                                 # the repository's day profile
 ./gradlew runProfile -Dloadrig.profile=<file>        # any profile file
+./gradlew runProfile -Dloadrig.serviceLevels=<file>  # the campaign's criterion; the repository's otherwise
 ./gradlew runProfile -Dloadrig.sut.version=<version> # record what is under test; unknown otherwise
 ```
+
+The service levels are the criterion a capture is judged by and one of the four calibration levers
+of a demonstration stand: chosen rather than measured, fixed before a campaign, held across the
+baseline and the faulted run alike, and recorded with every capture. They are therefore the
+campaign's configuration and not a profile's — `profiles/service-levels.json` states a 95th
+percentile per band of act and a hard ceiling over everything — and a run states, band by band,
+what it realized against them. That verdict is the injector's half: the application's log staying
+quiet and the throttled-period counter staying flat are read on the stand, and the report says so
+rather than implying a verdict the rig cannot reach.
 
 Provisioning the account pool also needs a running stack: it brings the stack to the configured
 pool through the administrator screens, walks each fresh account's forced password change and
@@ -82,7 +96,7 @@ proves every member's sign-in. It is idempotent - a stack already provisioned is
 | Path | What it holds |
 | --- | --- |
 | `src/main/java/loadrig/model` | The business scenarios, the step mix, the profile vocabulary |
-| `profiles/` | The load profiles: external JSON over the code-owned vocabulary, one file per variant |
+| `profiles/` | The load profiles, one file per variant, and the service levels of a campaign: external JSON over the code-owned vocabulary |
 | `src/main/java/loadrig/registry` | The session registry and the task registry shared by the virtual users |
 | `src/main/java/loadrig/run` | The run harness: assembling a profile, executing it, leaving the artifacts |
 | `docs/` | Rules, brief, roadmap, decisions, sessions — see `docs/README.md` |

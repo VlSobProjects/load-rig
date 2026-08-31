@@ -1,0 +1,11 @@
+{
+  "percentile95Millis": {
+    "openingAList": 1000,
+    "openingOneTask": 1000,
+    "performingAnAction": 1000,
+    "writingANote": 1000,
+    "signingIn": 2000,
+    "runningAReport": 3000
+  },
+  "hardCeilingMillis": 10000
+}
