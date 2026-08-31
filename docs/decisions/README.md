@@ -40,3 +40,4 @@ The registry is the only index. Add the row when the record lands on `developmen
 | 5 | [A rig for this SUT, not a universal one: the adaptation ledger](dr-5-a-rig-for-this-sut-not-a-universal-one.md) | Draft | 2026-08-29-implementation-3 |
 | 6 | [The run establishes its own population: a computed census and a warm start](dr-6-the-run-establishes-its-own-population.md) | Draft | 2026-08-30-implementation-1 |
 | 7 | [The maximum is searched for against the baseline, under a criterion of its own](dr-7-the-search-has-its-own-criterion.md) | Draft | 2026-08-31-architecture-1 |
+| 8 | [The population a campaign plays: sessions that end, players beyond the seats, a stand levelled to a stated state](dr-8-the-population-a-campaign-plays.md) | Draft | 2026-09-01-architecture-1 |
