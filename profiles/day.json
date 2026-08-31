@@ -20,6 +20,7 @@
     "taskOpensPercent": 70,
     "notesPercent": 80
   },
+  "endingASessionPercent": 2,
   "scenarioPopulation": {
     "worker": 5,
     "manager": 3,

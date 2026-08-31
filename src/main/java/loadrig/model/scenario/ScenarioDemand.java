@@ -20,9 +20,15 @@ import loadrig.model.step.StepKind;
  *
  * <p>One reading underlies all of it, the same one the mix-survival check makes: a virtual user
  * takes one step per think time, whatever the step is.
+ *
+ * <p>The sessions given up stand beside the step kinds rather than among them: giving one up is
+ * no row of the mix and takes no share from the business steps, but it is an intensity the run
+ * applies and therefore one the capture must state. It is also the rate of the sign-ins, because
+ * in a steady state an account that gave its session up signs in again.
  */
 public record ScenarioDemand(
         double stepsPerMinute,
+        double sessionsGivenUpPerMinute,
         Map<StepKind, Double> perKind,
         Map<Transition, Double> perTransition,
         int steadyWindowMinutes) {
@@ -51,8 +57,10 @@ public record ScenarioDemand(
             transitions.get(name).forEach((transition, weight) ->
                     perTransition.merge(transition, scenarioSteps * weight / total, Double::sum));
         }
-        return new ScenarioDemand(profile.virtualUsers() * stepsPerUser, perKind, perTransition,
-                profile.steadyWindowMinutes());
+        double iterationsPerMinute = profile.virtualUsers() * stepsPerUser;
+        return new ScenarioDemand(iterationsPerMinute,
+                iterationsPerMinute * profile.endingASessionPercent() / 100.0,
+                perKind, perTransition, profile.steadyWindowMinutes());
     }
 
     /** The rate of one step kind; a kind no scenario takes is asked for at a rate of zero. */

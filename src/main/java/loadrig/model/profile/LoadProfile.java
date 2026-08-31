@@ -26,6 +26,7 @@ public record LoadProfile(
         ThinkTime thinkTime,
         StepMix stepMix,
         HotSetSkew hotSetSkew,
+        int endingASessionPercent,
         Map<ScenarioName, Integer> scenarioPopulation) {
 
     /** The pause a virtual user thinks between steps, drawn per step from these bounds. */
@@ -79,7 +80,31 @@ public record LoadProfile(
                     + rampSeconds + " seconds");
         }
         requirePositive("steadyWindowMinutes", steadyWindowMinutes);
+        requireSessionsThatEnd(endingASessionPercent);
         scenarioPopulation = populationOfEveryScenario(scenarioPopulation, virtualUsers);
+    }
+
+    /**
+     * How many of every hundred iterations end by giving up the session, so that another one
+     * begins in its place (DR-8). It is not a row of the mix and takes no share from the business
+     * steps: an iteration that ends this way has already performed whatever step it drew.
+     *
+     * <p>A share of zero is refused rather than allowed. It is the model the calibration probe
+     * measured, in which a virtual user takes a session at the ramp and never gives it up: the
+     * sign-ins are then two requests per account and the band that measures them measures a cold
+     * start, whatever the window afterwards does. A profile that wants that model back is asking
+     * for a decision, not for a value.
+     */
+    private static void requireSessionsThatEnd(int percent) {
+        if (percent <= 0) {
+            throw new IllegalArgumentException("endingASessionPercent is " + percent
+                    + "; a load model in which no session ends signs everybody in on the ramp and"
+                    + " never again, and its sign-in band is a cold-start figure (DR-8)");
+        }
+        if (percent > 100) {
+            throw new IllegalArgumentException("endingASessionPercent must be a percentage, and"
+                    + " it is " + percent);
+        }
     }
 
     private static Map<ScenarioName, Integer> populationOfEveryScenario(

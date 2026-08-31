@@ -42,6 +42,7 @@ public record LoadProfileDescription(
         LoadProfile.ThinkTime thinkTime,
         StepMix stepMix,
         LoadProfile.HotSetSkew hotSetSkew,
+        int endingASessionPercent,
         Map<String, Integer> scenarioPopulation,
         TargetRates targetRatesPerMinute,
         Population population,
@@ -57,7 +58,9 @@ public record LoadProfileDescription(
     /**
      * The per-operation targets the profile implies, in steps per minute. The seven operations are
      * the mix's rows; the settlements come beside them because a reader judging the population
-     * should not have to re-derive the transition split to do it.
+     * should not have to re-derive the transition split to do it, and the sessions given up
+     * because they are an intensity the run applies which no row of the mix accounts for - and
+     * the rate at which the log's sign-ins should arrive.
      */
     public record TargetRates(
             double steps,
@@ -68,7 +71,8 @@ public record LoadProfileDescription(
             double runningAReport,
             double creatingATask,
             double deletingATask,
-            double settlements) {
+            double settlements,
+            double sessionsGivenUp) {
     }
 
     /**
@@ -116,7 +120,8 @@ public record LoadProfileDescription(
                 demand.rateOf(StepKind.RUNNING_A_REPORT),
                 demand.rateOf(StepKind.CREATING_A_TASK),
                 demand.rateOf(StepKind.DELETING_A_TASK),
-                demand.settlementsPerMinute());
+                demand.settlementsPerMinute(),
+                demand.sessionsGivenUpPerMinute());
         Map<String, Integer> populations = new LinkedHashMap<>();
         for (ScenarioName name : ScenarioName.values()) {
             populations.put(name.key(), profile.scenarioPopulation().get(name));
@@ -132,6 +137,7 @@ public record LoadProfileDescription(
                 profile.thinkTime(),
                 profile.stepMix(),
                 profile.hotSetSkew(),
+                profile.endingASessionPercent(),
                 populations,
                 targets,
                 new Population(census.tasks(), census.buckets().size(),

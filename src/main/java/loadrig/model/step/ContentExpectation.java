@@ -39,6 +39,17 @@ public final class ContentExpectation {
                 SutSurface.REFUSED_MARK, true);
     }
 
+    /**
+     * The answer is no longer an authenticated screen: what a session given up must produce. It
+     * is stated as the absence of the authenticated mark rather than as the presence of the login
+     * form, because the form's mark is a token field that authenticated screens carry too - a
+     * sign-out that silently left the session standing would satisfy it.
+     */
+    public static ContentExpectation rendersNoAuthenticatedMark() {
+        return new ContentExpectation("the answer is no longer an authenticated screen",
+                SutSurface.AUTHENTICATED_MARK, true);
+    }
+
     /** The expectation as the injector holds it, built fresh for each step that states it. */
     DslResponseAssertion assertion() {
         DslResponseAssertion assertion = responseAssertion(description).containsSubstrings(mark);

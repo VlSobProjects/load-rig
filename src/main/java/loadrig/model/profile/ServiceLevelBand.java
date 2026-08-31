@@ -1,10 +1,18 @@
 package loadrig.model.profile;
 
 /**
- * The closed list of acts the service levels are stated for: the rows of the SUT
- * specification's service-level table, each one a step as the person performing it experiences
- * it. A band is what a figure is attached to, so that a capture states its latency against the
- * act a user would name and not against the address a request went to.
+ * The closed list of acts the service levels are stated for, each one a step as the person
+ * performing it experiences it. A band is what a figure is attached to, so that a capture states
+ * its latency against the act a user would name and not against the address a request went to.
+ *
+ * <p>Most rows are the SUT specification's own service-level table. The list is not that table
+ * and never was: the load model belongs to this project, and an act the model performs which the
+ * specification's table does not name still needs a figure to be judged by, or the run would
+ * either leave it unjudged or hide it inside a band measuring something else. Such a row is this
+ * project's statement - derived the way a load analyst derives one, from how the act is used
+ * rather than from what the system's authors would like it to cost - and it travels to the SUT
+ * project through the desk as a fact of the campaign, not as a question. {@link #SIGNING_OUT} is
+ * the first of them.
  *
  * <p>Which band judges a step is the step kind's own fact and lives with the kinds; a band knows
  * only its spelling in the configuration file.
@@ -26,6 +34,15 @@ public enum ServiceLevelBand {
 
     /** Deliberately looser than the rest: password hashing is real work and is meant to be slow. */
     SIGNING_IN("signingIn"),
+
+    /**
+     * Giving up a session at the end of a stint. This project's own row: the specification's
+     * table names no such act, and judging it in {@link #SIGNING_IN} would put a request that
+     * hashes no password into the one band held loose because hashing is slow - which is how a
+     * band stops meaning what it is named after. It is held tighter than signing in for exactly
+     * that reason: nothing about ending a session is meant to be expensive.
+     */
+    SIGNING_OUT("signingOut"),
 
     /** The wide read a person explicitly asked for and therefore waits for. */
     RUNNING_A_REPORT("runningAReport");

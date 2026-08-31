@@ -79,7 +79,10 @@ of a demonstration stand: chosen rather than measured, fixed before a campaign, 
 baseline and the faulted run alike, and recorded with every capture. They are therefore the
 campaign's configuration and not a profile's — `profiles/service-levels.json` states a 95th
 percentile per band of act and a hard ceiling over everything — and a run states, band by band,
-what it realized against them. That verdict is the injector's half: the application's log staying
+what it realized against them. Most bands are the SUT specification's own rows; a band for an act
+the load model performs which that table does not name is this project's own statement, derived
+the way a load analyst derives one and sent to the SUT project as a fact of the campaign rather
+than as a question. Signing out is the first of them. That verdict is the injector's half: the application's log staying
 quiet and the throttled-period counter staying flat are read on the stand, and the report says so
 rather than implying a verdict the rig cannot reach.
 

@@ -31,7 +31,10 @@ public final class MixSurvivalCheck {
     public static void check(LoadProfile profile) {
         Map<ScenarioName, Map<StepKind, Integer>> weights = Scenarios.stepWeights();
         for (StepKind kind : StepKind.values()) {
-            if (kind == StepKind.SESSION_KEEPING) {
+            // The acts by which a session begins and ends are no rows of the mix and are held
+            // against nothing here: they take no share from the business steps, and the profile
+            // states their intensity separately.
+            if (kind == StepKind.SESSION_KEEPING || kind == StepKind.GIVING_UP_A_SESSION) {
                 continue;
             }
             double computed = computedShare(profile, weights, kind);
@@ -70,8 +73,9 @@ public final class MixSurvivalCheck {
             case RUNNING_A_REPORT -> mix.runningAReportPercent();
             case CREATING_A_TASK -> mix.creatingATaskPercent();
             case DELETING_A_TASK -> mix.deletingATaskPercent();
-            case SESSION_KEEPING -> throw new IllegalArgumentException(
-                    "session keeping is no row of the mix");
+            case SESSION_KEEPING, GIVING_UP_A_SESSION -> throw new IllegalArgumentException(
+                    kind + " is no row of the mix: a session begins and ends beside the business"
+                            + " steps and takes no share from them");
         };
     }
 

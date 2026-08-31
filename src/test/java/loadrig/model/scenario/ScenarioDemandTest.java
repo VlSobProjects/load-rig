@@ -32,6 +32,14 @@ class ScenarioDemandTest {
     }
 
     @Test
+    void theSessionsGivenUpAreTheStatedShareOfTheIterations() {
+        assertEquals(2.4, day.sessionsGivenUpPerMinute(), PRECISION,
+                "two of every hundred iterations end their session, and 120 iterations a minute"
+                        + " therefore give up 2.4 of them - which is also the rate the sign-ins"
+                        + " should arrive at");
+    }
+
+    @Test
     void everyStepKindGetsItsShareAndTogetherTheyAreEveryStep() {
         assertEquals(6, day.creationsPerMinute(), PRECISION);
         assertEquals(1.2, day.deletionsPerMinute(), PRECISION);

@@ -3,6 +3,7 @@ package loadrig.model.scenario;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.httpCookies;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jsr223PostProcessor;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.jtlWriter;
+import static us.abstracta.jmeter.javadsl.JmeterDsl.percentController;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.testPlan;
 import static us.abstracta.jmeter.javadsl.JmeterDsl.threadGroup;
 
@@ -81,6 +82,11 @@ public final class ProfilePlan {
         for (Step step : scenario.iteration()) {
             children.add(step.scheduled(100f * step.weight() / totalWeight));
         }
+        // The end of a stint, on the share of iterations the profile states: it sits after the
+        // steps and before the session is set down, because a person signs out when their work
+        // is done and not instead of doing it (DR-8).
+        children.add(percentController(profile.endingASessionPercent(),
+                session.givesUpTheSession()));
         children.add(session.setDown());
         children.add(perSampleTally());
         return threadGroup(scenario.name().key())
