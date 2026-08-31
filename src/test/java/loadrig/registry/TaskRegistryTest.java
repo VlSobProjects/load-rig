@@ -32,6 +32,30 @@ class TaskRegistryTest {
     }
 
     @Test
+    void theBacklogCountsTheWorkWaitingForAnAccount() {
+        registry.register(openTask("1", CREATOR, ASSIGNEE, false));
+        registry.register(openTask("2", CREATOR, ASSIGNEE, false));
+        registry.register(openTask("3", CREATOR, "worker-02", false));
+        registry.register(new TaskRegistry.TaskFacts("4", TaskStatus.COMPLETED, CREATOR, ASSIGNEE,
+                false));
+
+        assertEquals(2, registry.backlogOf(ASSIGNEE, Role.WORKER),
+                "the two open tasks assigned to them are theirs to move; the completed one is"
+                        + " their creator's and the third is another worker's");
+        assertEquals(1, registry.backlogOf(CREATOR, Role.MANAGER),
+                "the creator's work is the completed task awaiting approval, and only that");
+    }
+
+    @Test
+    void theBacklogLeavesDeletionOut() {
+        registry.register(openTask("1", CREATOR, ASSIGNEE, false));
+
+        assertEquals(0, registry.backlogOf("admin-01", Role.ADMINISTRATOR),
+                "an administrator may delete anything, so counting deletion would make their"
+                        + " backlog the whole table and say nothing about who has work to do");
+    }
+
+    @Test
     void aLeasedTaskIsNotHandedOutTwice() {
         registry.register(openTask("1", CREATOR, ASSIGNEE, false));
         registry.lease(Transition.FINISH, ASSIGNEE, Role.WORKER);

@@ -23,7 +23,7 @@ class ServiceLevelLedgerTest {
     private static final String NOBODY_DECLARED = "a step the plan cannot name";
 
     private final ServiceLevels levels = new ServiceLevels(
-            figures(1000, 1000, 1000, 1000, 2000, 3000), 10000);
+            figures(1000, 1000, 1000, 1000, 2000, 1000, 3000), 10000);
 
     @Test
     void thePercentileIsTheValueAtTheNearestRank() {
@@ -120,13 +120,14 @@ class ServiceLevelLedgerTest {
     }
 
     private static Map<ServiceLevelBand, Integer> figures(int list, int task, int action,
-            int note, int signIn, int report) {
+            int note, int signIn, int signOut, int report) {
         Map<ServiceLevelBand, Integer> figures = new EnumMap<>(ServiceLevelBand.class);
         figures.put(ServiceLevelBand.OPENING_A_LIST, list);
         figures.put(ServiceLevelBand.OPENING_ONE_TASK, task);
         figures.put(ServiceLevelBand.PERFORMING_AN_ACTION, action);
         figures.put(ServiceLevelBand.WRITING_A_NOTE, note);
         figures.put(ServiceLevelBand.SIGNING_IN, signIn);
+        figures.put(ServiceLevelBand.SIGNING_OUT, signOut);
         figures.put(ServiceLevelBand.RUNNING_A_REPORT, report);
         return figures;
     }

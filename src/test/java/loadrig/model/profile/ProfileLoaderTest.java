@@ -37,6 +37,7 @@ class ProfileLoaderTest {
         assertEquals(new StepMix(37, 22, 13, 12, 10, 5, 1), profile.stepMix());
         assertEquals(70, profile.hotSetSkew().taskOpensPercent());
         assertEquals(80, profile.hotSetSkew().notesPercent());
+        assertEquals(2, profile.endingASessionPercent());
         assertEquals(Map.of(
                         ScenarioName.WORKER, 5,
                         ScenarioName.MANAGER, 3,
@@ -110,6 +111,17 @@ class ProfileLoaderTest {
                 assertThrows(IllegalArgumentException.class, () -> ProfileLoader.load(profile));
         assertTrue(refusal.getMessage().contains("101"),
                 "the refusal must state the wrong sum: " + refusal.getMessage());
+    }
+
+    @Test
+    void aProfileWhoseSessionsNeverEndIsRefused() throws IOException {
+        Path profile = dayProfileWith(
+                "\"endingASessionPercent\": 2,", "\"endingASessionPercent\": 0,");
+        IllegalArgumentException refusal =
+                assertThrows(IllegalArgumentException.class, () -> ProfileLoader.load(profile));
+        assertTrue(refusal.getMessage().contains("cold-start"),
+                "the refusal must name what a model without sign-ins measures: "
+                        + refusal.getMessage());
     }
 
     @Test

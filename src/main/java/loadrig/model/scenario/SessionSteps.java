@@ -32,6 +32,13 @@ import us.abstracta.jmeter.javadsl.java.DslJsr223Sampler;
  * with the transport context attached - so a session outlives the iteration and passes between
  * threads, which is what decouples SUT sessions from virtual users.
  *
+ * <p>A session also ends. On the share of iterations the profile states, the person signs out and
+ * the account goes back to the registry without a session; the next iteration that finds none
+ * free signs one in, and which account that is is the registry's choice by state (DR-8). This is
+ * what keeps sign-ins recurring through the window: with nothing ending a session, every account
+ * signs in once on the ramp and never again, and the band measuring sign-ins measures a cold
+ * start - which is what the calibration probe found it doing.
+ *
  * <p>The thread's own cookie store is only a scratch register: before the iteration's first
  * request the held session's context is loaded into it, after every request it is mirrored
  * back, and at the iteration's end the context returns to the session registry. Letting the
@@ -55,6 +62,7 @@ final class SessionSteps {
     private static final String COOKIE_JAR_SLOT = "sessionCookieJar";
     private static final String CONTEXT_LOADED_FLAG = "sessionContextLoaded";
     private static final String NEEDS_SIGN_IN_FLAG = "sessionNeedsSignIn";
+    private static final String GIVEN_UP_FLAG = "sessionGivenUp";
 
     private final StepKit kit;
     private final ScenarioWiring wiring;
@@ -141,7 +149,8 @@ final class SessionSteps {
                     lease = wiring.sessions().acquire(role);
                     signIn = false;
                 } catch (RegistryStarvedException noneSignedIn) {
-                    lease = wiring.sessions().acquireToSignIn(role);
+                    lease = wiring.sessions().acquireToSignIn(role,
+                            username -> wiring.tasks().backlogOf(username, role));
                     signIn = true;
                 }
             } catch (RegistryStarvedException poolExhausted) {
@@ -155,6 +164,7 @@ final class SessionSteps {
             s.vars.put(SESSION_USER_VARIABLE, lease.username());
             s.vars.put(SESSION_TOKEN_VARIABLE, context.pageToken());
             s.vars.put(NEEDS_SIGN_IN_FLAG, String.valueOf(signIn));
+            s.vars.put(GIVEN_UP_FLAG, "false");
             s.sampleResult.setIgnore();
         });
     }
@@ -192,10 +202,36 @@ final class SessionSteps {
     }
 
     /**
+     * The end of a stint: the person signs out through the screen the application offers, and the
+     * account is free for the choice rule to send back in later (DR-8). The plan performs it on
+     * the share of iterations the profile states, which is what makes sign-ins recur through the
+     * window instead of ending with the ramp.
+     *
+     * <p>It carries no think time of its own. The iteration already paid one for the step it
+     * performed, and giving the session up is the end of that same visit rather than a new act
+     * the person paused before; a second pause here would lower every computed intensity by the
+     * share of iterations that end.
+     *
+     * <p>The flag is set whatever the answer was. A sign-out whose answer was not the one expected
+     * fails the sample and the run says so; what it must not do is leave the rig believing it
+     * still holds a session it has just tried to end.
+     */
+    DslHttpSampler givesUpTheSession() {
+        DslHttpSampler signsOut = kit.pageRequest(actorLabel + " signs out", SutSurface.LOGOUT,
+                ContentExpectation.rendersNoAuthenticatedMark())
+                .method("POST")
+                .param(SutSurface.CSRF_FIELD, StepKit.variable(SESSION_TOKEN_VARIABLE));
+        signsOut.children(jsr223PostProcessor(s -> s.vars.put(GIVEN_UP_FLAG, "true")));
+        kit.declareKind(StepKind.GIVING_UP_A_SESSION, signsOut);
+        return signsOut;
+    }
+
+    /**
      * Sets the session down: the context the iteration ends with returns to the registry and
-     * the session stays signed in for its next holder. A context that carries no token is not a
-     * session - the sign-in that should have produced it was refused - and is reported signed
-     * out instead of being handed to the next step as if it worked.
+     * the session stays signed in for its next holder, unless this iteration was one of those
+     * that gave it up. A context that carries no token is not a session - the sign-in that should
+     * have produced it was refused - and is reported signed out instead of being handed to the
+     * next step as if it worked.
      */
     DslJsr223Sampler setDown() {
         return jsr223Sampler(actorLabel + " sets the session down", s -> {
@@ -207,7 +243,7 @@ final class SessionSteps {
                 String token = s.vars.get(SESSION_TOKEN_VARIABLE);
                 TransportContext context = new TransportContext(
                         jar == null ? List.of() : jar, token == null ? "" : token);
-                if (context.carriesAToken()) {
+                if (context.carriesAToken() && !Boolean.parseBoolean(s.vars.get(GIVEN_UP_FLAG))) {
                     wiring.sessions().attach(lease, context);
                     wiring.sessions().release(lease);
                 } else {

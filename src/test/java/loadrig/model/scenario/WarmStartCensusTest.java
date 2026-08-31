@@ -145,7 +145,7 @@ class WarmStartCensusTest {
         return new LoadProfile("scaled", users, 30, windowMinutes,
                 new LoadProfile.ThinkTime(3, 7),
                 new StepMix(37, 22, 13, 12, 10, 5, 1),
-                new LoadProfile.HotSetSkew(70, 80),
+                new LoadProfile.HotSetSkew(70, 80), 2,
                 Map.of(ScenarioName.WORKER, workers,
                         ScenarioName.MANAGER, managers,
                         ScenarioName.ADMINISTRATOR, administrators,

@@ -57,6 +57,10 @@ class LoadProfileDescriptionTest {
                 description.get("stepMix").get("lookingAtAListPercent").asInt());
         assertEquals(profile.hotSetSkew().notesPercent(),
                 description.get("hotSetSkew").get("notesPercent").asInt());
+        assertEquals(profile.endingASessionPercent(),
+                description.get("endingASessionPercent").asInt(),
+                "the share of iterations that end their session is applied by the run, so the"
+                        + " description states it");
     }
 
     @Test
@@ -78,6 +82,8 @@ class LoadProfileDescriptionTest {
         assertEquals(demand.notesPerMinute(), targets.get("discussion").asDouble(), 1e-9);
         assertEquals(demand.settlementsPerMinute(),
                 targets.get("settlements").asDouble(), 1e-9);
+        assertEquals(demand.sessionsGivenUpPerMinute(),
+                targets.get("sessionsGivenUp").asDouble(), 1e-9);
         double statedOperations = targets.get("lookingAtAList").asDouble()
                 + targets.get("openingOneTask").asDouble()
                 + targets.get("movingATask").asDouble()

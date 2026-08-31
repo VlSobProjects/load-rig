@@ -123,6 +123,29 @@ public final class TaskRegistry {
     }
 
     /**
+     * How much work is waiting for the account: the tasks it may move, whatever the transition.
+     * It is what the session registry's choice rule reads when it decides which account signs in
+     * next (DR-8), and it is asked of the rig's own ledger rather than of the system under test,
+     * which would be measuring the stand to learn what the injector already knows.
+     *
+     * <p>Deletion is deliberately excluded. The administrator may delete a task in any status, so
+     * counting it would make every administrator's backlog the whole table and every worker's a
+     * strict subset of it - a depth that says nothing about who has work to do.
+     *
+     * <p>A leased task counts: it is work of this account either way, and a lease lasts one
+     * request. Counting only the free ones would make the depth flicker with the run's timing.
+     */
+    public synchronized int backlogOf(String username, Role role) {
+        int waiting = 0;
+        for (TaskFacts facts : tasks.values()) {
+            if (movableBy(facts, username, role)) {
+                waiting++;
+            }
+        }
+        return waiting;
+    }
+
+    /**
      * A task the account may open for reading, from the hot set or from the rest, drawn at
      * random among the fitting ones: the skew decides how much attention the hot set receives,
      * and the draw spreads that attention over the set instead of converging on its first
@@ -183,6 +206,16 @@ public final class TaskRegistry {
                     "the lease on task " + taskId + " is not held by this registry");
         }
         return facts;
+    }
+
+    private static boolean movableBy(TaskFacts facts, String username, Role role) {
+        for (Transition transition : Transition.values()) {
+            if (transition != Transition.DELETE
+                    && TransitionTable.permits(transition, facts, username, role)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean inHotSet(TaskFacts facts) {

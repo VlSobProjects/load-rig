@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 import loadrig.model.AccountPool;
 import loadrig.model.Role;
 import org.junit.jupiter.api.Test;
@@ -22,20 +23,57 @@ class SessionRegistryTest {
             new AccountPool.Member("manager-02", Role.MANAGER),
             new AccountPool.Member("worker-01", Role.WORKER));
 
+    /** A stand where nothing is waiting for anybody: the choice falls to the other two facts. */
+    private static final ToIntFunction<String> NOTHING_WAITING = username -> 0;
+
     private final SessionRegistry registry = new SessionRegistry(MEMBERS);
 
     @Test
     void aSignInTakesAnAccountWithoutASession() {
-        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER);
+        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER, NOTHING_WAITING);
 
         assertEquals("manager-01", lease.username(),
-                "sign-ins fill the pool in its stable order");
+                "with nothing to tell two idle accounts apart, the pool's order decides");
         assertThrows(RegistryStarvedException.class, () -> registry.acquireOf("manager-01"),
                 "an account being signed in is not free until its holder releases it");
 
         registry.attach(lease, aContext("a-token"));
         registry.release(lease);
         assertEquals("manager-01", registry.acquireOf("manager-01").username());
+    }
+
+    @Test
+    void theAccountWithWorkWaitingSignsInFirst() {
+        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER,
+                username -> username.equals("manager-02") ? 4 : 0);
+
+        assertEquals("manager-02", lease.username(),
+                "an account with nothing it may act on takes a seat and starves the gates;"
+                        + " the depth of the backlog decides before anything else");
+    }
+
+    @Test
+    void amongEquallySuppliedAccountsTheOneThatHasDoneLeastComesBack() {
+        signIn(Role.MANAGER);
+        registry.signedOut(registry.acquireOf("manager-01"));
+
+        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER, NOTHING_WAITING);
+
+        assertEquals("manager-02", lease.username(),
+                "with the backlogs equal, the account that has taken fewer acts comes back");
+    }
+
+    @Test
+    void theLongestIdleBreaksWhatIsStillTied() {
+        signIn(Role.MANAGER);
+        registry.signedOut(registry.acquireOf("manager-01"));
+        signIn(Role.MANAGER);
+        registry.signedOut(registry.acquireOf("manager-02"));
+
+        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER, NOTHING_WAITING);
+
+        assertEquals("manager-01", lease.username(),
+                "the two have done the same; the one whose last act is older comes back");
     }
 
     @Test
@@ -69,7 +107,7 @@ class SessionRegistryTest {
 
     @Test
     void theContextTravelsWithTheSession() {
-        SessionRegistry.Lease signedIn = registry.acquireToSignIn(Role.WORKER);
+        SessionRegistry.Lease signedIn = registry.acquireToSignIn(Role.WORKER, NOTHING_WAITING);
         registry.attach(signedIn, aContext("the-token-of-the-sign-in"));
         registry.release(signedIn);
 
@@ -86,7 +124,7 @@ class SessionRegistryTest {
 
     @Test
     void releasingWithoutAContextIsRefused() {
-        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.WORKER);
+        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.WORKER, NOTHING_WAITING);
 
         assertThrows(IllegalStateException.class, () -> registry.release(lease),
                 "a session released as signed in must carry its transport context");
@@ -100,7 +138,7 @@ class SessionRegistryTest {
         assertThrows(RegistryStarvedException.class, () -> registry.acquireOf("worker-01"),
                 "a signed-out account has no session to acquire");
 
-        SessionRegistry.Lease again = registry.acquireToSignIn(Role.WORKER);
+        SessionRegistry.Lease again = registry.acquireToSignIn(Role.WORKER, NOTHING_WAITING);
         assertEquals("worker-01", again.username(),
                 "a signed-out account is again an account to sign in with");
         assertThrows(IllegalStateException.class, () -> registry.contextOf(again),
@@ -124,7 +162,7 @@ class SessionRegistryTest {
 
     @Test
     void aStaleLeaseIsRefused() {
-        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER);
+        SessionRegistry.Lease lease = registry.acquireToSignIn(Role.MANAGER, NOTHING_WAITING);
         registry.attach(lease, aContext("a-token"));
         registry.release(lease);
 
@@ -144,7 +182,7 @@ class SessionRegistryTest {
     }
 
     private void signIn(Role role) {
-        SessionRegistry.Lease lease = registry.acquireToSignIn(role);
+        SessionRegistry.Lease lease = registry.acquireToSignIn(role, NOTHING_WAITING);
         registry.attach(lease, aContext("a-token"));
         registry.release(lease);
     }

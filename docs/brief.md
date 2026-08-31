@@ -63,8 +63,10 @@ configuration, never implicit constants.
   tasks the steps may act on — and the rig holds it by establishing that population before the
   window, stocking each bucket for the drain the window causes, and keeping the run's work among
   the accounts the run plays over its window rather than the whole pool — a session ends and
-  another begins, so those accounts are more than the seats a step holds at once, and an account
-  between sessions is waiting its turn rather than absent (DR-8). What the window adds to the table
+  another begins, at a share of the iterations the profile states and with the account that signs
+  in next chosen from the rig's own registry by what it holds, so those accounts are more than the
+  seats a step holds at once, and an account between sessions is waiting its turn rather than
+  absent (DR-8). What the window adds to the table
   itself is published as a fact of the capture; how much the stand holds when the window opens is
   the campaign's own stated figure, which the warm start levels to in both directions, so that the
   steps of one campaign differ in intensity alone.
@@ -91,7 +93,13 @@ configuration, never implicit constants.
   log (DR-6). It degenerates to pure reading on a seeded stand, so the seeding costs it no
   rewrite.
 - **The service levels.** Chosen, not measured, and a calibration lever: fixed before a
-  campaign, recorded with every capture, held across the baseline and the faulted run alike. They
+  campaign, recorded with every capture, held across the baseline and the faulted run alike. Their
+  bands are mostly the specification's rows and are not confined to them: the load model is this
+  project's, and an act the model performs which that table does not name still needs a figure, or
+  the run either leaves it unjudged or hides it inside a band measuring something else. Such a
+  band is stated here — the way a load analyst states one, from how the act is used rather than
+  from what the system's authors would price it at — and travels to the SUT project through the
+  desk as a fact of the campaign rather than as a question. Signing out is the first of them. They
   are therefore the configuration of a campaign and not of a profile — one file every run of it
   reads — and each run times every sample the result log carries into the band of the act that
   produced it and states the percentile it realized against the figure, by a named percentile

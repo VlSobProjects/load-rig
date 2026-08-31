@@ -39,7 +39,8 @@ class ServiceLevelsLoaderTest {
                     "openingOneTask": 1000,
                     "performingAnAction": 1000,
                     "writingANote": 1000,
-                    "signingIn": 2000
+                    "signingIn": 2000,
+                    "signingOut": 1000
                   },
                   "hardCeilingMillis": 10000
                 }
@@ -62,6 +63,7 @@ class ServiceLevelsLoaderTest {
                     "performingAnAction": 1000,
                     "writingANote": 1000,
                     "signingIn": 2000,
+                    "signingOut": 1000,
                     "runningAReport": 3000,
                     "deletingATask": 1000
                   },
@@ -83,6 +85,7 @@ class ServiceLevelsLoaderTest {
                     "performingAnAction": 1000,
                     "writingANote": 1000,
                     "signingIn": 2000,
+                    "signingOut": 1000,
                     "runningAReport": 3000
                   },
                   "hardCeilingMillis": 10000
@@ -103,6 +106,7 @@ class ServiceLevelsLoaderTest {
                     "performingAnAction": 1000,
                     "writingANote": 1000,
                     "signingIn": 2000,
+                    "signingOut": 1000,
                     "runningAReport": 12000
                   },
                   "hardCeilingMillis": 10000

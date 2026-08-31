@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.ToIntFunction;
 import loadrig.model.AccountPool;
 import loadrig.model.Role;
 
@@ -24,8 +25,9 @@ import loadrig.model.Role;
  * <p>Which fitting session an acquisition gets is drawn at random, so that the load spreads
  * over the pool instead of wearing the first accounts - a run whose every note is written by
  * the same manager measures one person's cache, not a population. The one deliberate exception
- * is {@link #acquireToSignIn}: sign-ins fill the pool in its stable order, so which accounts a
- * small run occupies is predictable.
+ * is {@link #acquireToSignIn}, which chooses by state rather than by chance or by the pool's
+ * order (DR-8): the account with work waiting comes back first, and among equals the one that
+ * has done least and waited longest.
  */
 public final class SessionRegistry {
 
@@ -43,11 +45,16 @@ public final class SessionRegistry {
     private final Map<String, Role> roles = new LinkedHashMap<>();
     private final Map<String, State> states = new LinkedHashMap<>();
     private final Map<String, TransportContext> contexts = new LinkedHashMap<>();
+    private final Map<String, Integer> acts = new LinkedHashMap<>();
+    private final Map<String, Long> lastAct = new LinkedHashMap<>();
+    private long tick;
 
     public SessionRegistry(Collection<AccountPool.Member> members) {
         for (AccountPool.Member member : members) {
             roles.put(member.username(), member.role());
             states.put(member.username(), State.SIGNED_OUT);
+            acts.put(member.username(), 0);
+            lastAct.put(member.username(), 0L);
         }
         if (roles.isEmpty()) {
             throw new IllegalArgumentException("a session registry over no accounts can only starve");
@@ -68,14 +75,56 @@ public final class SessionRegistry {
         return names;
     }
 
-    /** An account of the role without a live session, held for the sign-in step. */
-    public synchronized Lease acquireToSignIn(Role role) {
+    /**
+     * An account of the role without a live session, held for the sign-in step, chosen by the
+     * state the rig already holds about it rather than by the pool's order (DR-8).
+     *
+     * <p>Three facts decide, in this order. The <strong>depth of the account's backlog</strong>,
+     * which the caller supplies because the tasks are another registry's fact: an account with
+     * nothing it may act on takes a seat and starves the gates of the steps that need one, so the
+     * person with work waiting is the person who comes back. Then the <strong>acts it has taken
+     * in this run</strong>, fewest first, and then <strong>how long since its last one</strong>,
+     * longest first: among accounts equally supplied with work, the population turns over instead
+     * of wearing the same few. The pool's order breaks what is still tied, so a run whose accounts
+     * are all equally idle - every run, at its ramp - occupies them predictably, as it did before
+     * this rule existed.
+     *
+     * <p>Reading the same facts out of a report's rendered answer was considered and refused: it
+     * would measure the system under test to learn what the rig already knows.
+     *
+     * <p>An administrator's backlog is nil by construction - the role acts only by deleting, which
+     * every task permits - so their choice is settled by the second and third facts alone. That is
+     * correct rather than a gap: an administrator is never short of work.
+     */
+    public synchronized Lease acquireToSignIn(Role role, ToIntFunction<String> backlogOf) {
         List<Lease> fitting = allFitting(State.SIGNED_OUT, role, null);
         if (fitting.isEmpty()) {
             throw new RegistryStarvedException(
                     "no account of role " + role + " is without a session");
         }
-        return held(fitting.get(0));
+        Lease chosen = fitting.get(0);
+        int chosenBacklog = backlogOf.applyAsInt(chosen.username());
+        for (Lease candidate : fitting.subList(1, fitting.size())) {
+            int backlog = backlogOf.applyAsInt(candidate.username());
+            if (comesBackFirst(candidate, backlog, chosen, chosenBacklog)) {
+                chosen = candidate;
+                chosenBacklog = backlog;
+            }
+        }
+        return held(chosen);
+    }
+
+    /** The choice rule of {@link #acquireToSignIn}, applied to one pair of candidates. */
+    private boolean comesBackFirst(Lease candidate, int backlog, Lease held, int heldBacklog) {
+        if (backlog != heldBacklog) {
+            return backlog > heldBacklog;
+        }
+        int actsTaken = acts.get(candidate.username());
+        int actsHeld = acts.get(held.username());
+        if (actsTaken != actsHeld) {
+            return actsTaken < actsHeld;
+        }
+        return lastAct.get(candidate.username()) < lastAct.get(held.username());
     }
 
     /** A free signed-in session of the role, drawn at random among the fitting ones. */
@@ -129,7 +178,11 @@ public final class SessionRegistry {
         return context;
     }
 
-    /** Returns the session, signed in and free for the next step, with its context attached. */
+    /**
+     * Returns the session, signed in and free for the next step, with its context attached. The
+     * return is also what records the act: an iteration held this session and did something with
+     * it, which is what the choice rule of {@link #acquireToSignIn} counts and dates.
+     */
     public synchronized void release(Lease lease) {
         requireHeld(lease);
         if (contexts.get(lease.username()) == null) {
@@ -138,13 +191,26 @@ public final class SessionRegistry {
                     + " a holder that lost the context reports the session signed out");
         }
         states.put(lease.username(), State.SIGNED_IN);
+        acted(lease.username());
     }
 
-    /** Records the sign-out: the account has no session and no context until it signs in again. */
+    /**
+     * Records the sign-out: the account has no session and no context until it signs in again.
+     * The account spent an iteration before it got here - the one that gave the session up, or the
+     * one whose sign-in produced no session at all - so the act is recorded here as well;
+     * otherwise an account that ends every stint would look like one that never worked, and the
+     * choice rule would send it back in first every time.
+     */
     public synchronized void signedOut(Lease lease) {
         requireHeld(lease);
         states.put(lease.username(), State.SIGNED_OUT);
         contexts.remove(lease.username());
+        acted(lease.username());
+    }
+
+    private void acted(String username) {
+        acts.merge(username, 1, Integer::sum);
+        lastAct.put(username, ++tick);
     }
 
     private List<Lease> allFitting(State wanted, Role role, Collection<String> excluded) {

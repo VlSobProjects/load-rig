@@ -35,7 +35,7 @@ class IntendedDeletionsTest {
     @DisplayName("a fractional intention rounds up, so a run is never spoiled for obeying it")
     void aFractionalIntentionRoundsUp() {
         LoadProfile day = ProfileLoader.load(Path.of("profiles", "day.json"));
-        ScenarioDemand fractional = new ScenarioDemand(120,
+        ScenarioDemand fractional = new ScenarioDemand(120, 2.4,
                 Map.of(StepKind.DELETING_A_TASK, 0.11), Map.of(Transition.DELETE, 0.11),
                 day.steadyWindowMinutes());
 

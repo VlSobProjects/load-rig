@@ -58,7 +58,7 @@ class MixSurvivalCheckTest {
             int discussion) {
         return new LoadProfile("day", workers + managers + administrators + discussion, 30, 10,
                 new LoadProfile.ThinkTime(3, 7), new StepMix(37, 22, 13, 12, 10, 5, 1),
-                new LoadProfile.HotSetSkew(70, 80),
+                new LoadProfile.HotSetSkew(70, 80), 2,
                 Map.of(ScenarioName.WORKER, workers, ScenarioName.MANAGER, managers,
                         ScenarioName.ADMINISTRATOR, administrators,
                         ScenarioName.DISCUSSION, discussion));
