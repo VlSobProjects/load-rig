@@ -7,13 +7,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
+import loadrig.model.Role;
+import loadrig.model.profile.Campaign;
+import loadrig.model.profile.CampaignLoader;
 import loadrig.model.profile.LoadProfile;
 import loadrig.model.profile.ProfileLoader;
 import loadrig.model.profile.ServiceLevelBand;
 import loadrig.model.profile.ServiceLevels;
-import loadrig.model.profile.ServiceLevelsLoader;
+import loadrig.model.scenario.PlayingAccounts;
 import loadrig.model.scenario.ScenarioDemand;
-import loadrig.model.scenario.SeatedAccounts;
 import loadrig.model.scenario.WarmStartCensus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -22,8 +24,9 @@ import org.junit.jupiter.api.io.TempDir;
  * Proves the description artifact against the repository's own day profile: the written JSON
  * carries the profile's stated facts, the run's identity, the computed target rates - the same
  * numbers the plan is built from, so the description can never state targets the run did not obey
- * - the population the run established, measured rather than stated, and the service levels the
- * capture is judged by, which are chosen numbers and therefore have to travel with it.
+ * - the population the run established, measured rather than stated, the rotation it played, and
+ * the service levels the capture is judged by: the last two are the campaign's chosen numbers and
+ * therefore have to travel with the evidence.
  */
 class LoadProfileDescriptionTest {
 
@@ -134,6 +137,24 @@ class LoadProfileDescriptionTest {
     }
 
     @Test
+    void theRotationThatPlayedTheWindowTravelsWithTheCapture(@TempDir Path directory)
+            throws IOException {
+        LoadProfile profile = day();
+        Path file = directory.resolve("load-profile.json");
+
+        descriptionOf(profile).writeTo(file);
+
+        JsonNode rotation = new ObjectMapper().readTree(file.toFile()).get("rotation");
+        assertEquals(theCampaign().playersPerSeat(), rotation.get("playersPerSeat").asInt());
+        assertEquals(playersOf(profile).members().size(),
+                rotation.get("accountsPlaying").asInt(),
+                "how many people played decides how wide the working set was, and nothing in the"
+                        + " result log says it");
+        assertEquals(playersOf(profile).names(Role.WORKER).size(),
+                rotation.get("playersByRole").get("worker").asInt());
+    }
+
+    @Test
     void theServiceLevelsTheRunIsJudgedByTravelWithTheCapture(@TempDir Path directory)
             throws IOException {
         LoadProfile profile = day();
@@ -157,15 +178,23 @@ class LoadProfileDescriptionTest {
     }
 
     private static WarmStartCensus censusOf(LoadProfile profile) {
-        return WarmStartCensus.of(profile, SeatedAccounts.of(profile));
+        return WarmStartCensus.of(profile, playersOf(profile));
+    }
+
+    private static PlayingAccounts playersOf(LoadProfile profile) {
+        return PlayingAccounts.of(profile, theCampaign());
+    }
+
+    private static Campaign theCampaign() {
+        return CampaignLoader.load(Path.of("profiles", "campaign.json"));
     }
 
     private static ServiceLevels campaignLevels() {
-        return ServiceLevelsLoader.load(Path.of("profiles", "service-levels.json"));
+        return theCampaign().serviceLevels();
     }
 
     private static LoadProfileDescription descriptionOf(LoadProfile profile) {
-        return LoadProfileDescription.of(profile, ScenarioDemand.of(profile),
-                censusOf(profile), A_WARM_START, campaignLevels(), A_RUN, A_SUT_VERSION);
+        return LoadProfileDescription.of(profile, theCampaign(), ScenarioDemand.of(profile),
+                playersOf(profile), censusOf(profile), A_WARM_START, A_RUN, A_SUT_VERSION);
     }
 }

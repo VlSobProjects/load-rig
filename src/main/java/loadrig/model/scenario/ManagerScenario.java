@@ -257,14 +257,14 @@ public final class ManagerScenario implements Scenario {
 
     /**
      * A worker of this run whose identity an answer has already offered, drawn at random among
-     * them. The draw is over the accounts the run occupies and not over the whole pool: the pool
+     * them. The draw is over the accounts the run plays and not over the whole pool: the pool
      * is sized to the ceiling of the load model, so handing work to every account in it would send
      * most of a run's creations to people nobody is signed in as - work created and never touched,
      * while the transitions starve for want of open tasks.
      */
     private static String knownWorker(ScenarioWiring wiring) {
         List<String> known = wiring.directory()
-                .knownAmong(wiring.seated().names(Role.WORKER));
+                .knownAmong(wiring.playing().names(Role.WORKER));
         if (known.isEmpty()) {
             return null;
         }

@@ -24,11 +24,13 @@ import loadrig.model.step.StepKind;
  * <p>The sessions given up stand beside the step kinds rather than among them: giving one up is
  * no row of the mix and takes no share from the business steps, but it is an intensity the run
  * applies and therefore one the capture must state. It is also the rate of the sign-ins, because
- * in a steady state an account that gave its session up signs in again.
+ * in a steady state an account that gave its session up signs in again - and, read per seat, the
+ * length of one stint, which is the horizon the census stocks a bucket against.
  */
 public record ScenarioDemand(
         double stepsPerMinute,
         double sessionsGivenUpPerMinute,
+        double seatStintMinutes,
         Map<StepKind, Double> perKind,
         Map<Transition, Double> perTransition,
         int steadyWindowMinutes) {
@@ -60,7 +62,21 @@ public record ScenarioDemand(
         double iterationsPerMinute = profile.virtualUsers() * stepsPerUser;
         return new ScenarioDemand(iterationsPerMinute,
                 iterationsPerMinute * profile.endingASessionPercent() / 100.0,
+                seatStintMinutes(stepsPerUser, profile.endingASessionPercent()),
                 perKind, perTransition, profile.steadyWindowMinutes());
+    }
+
+    /**
+     * How long one seat is held by the same account before that account gives the session up: the
+     * iterations a stint lasts on average - one in every {@code endingASessionPercent} of them
+     * ends the stint - taken at the rate a seat performs them, which is one per think time.
+     *
+     * <p>It is the horizon a bucket must survive without leaving its seat, and therefore the
+     * horizon the census stocks against: the rotation does not turn over between two steps, so an
+     * account holding a seat is drawn from at the seat's rate however wide the rotation is.
+     */
+    private static double seatStintMinutes(double stepsPerUser, int endingASessionPercent) {
+        return 100.0 / endingASessionPercent / stepsPerUser;
     }
 
     /** The rate of one step kind; a kind no scenario takes is asked for at a rate of zero. */

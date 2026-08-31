@@ -29,7 +29,7 @@ import us.abstracta.jmeter.javadsl.core.threadgroups.BaseThreadGroup.ThreadGroup
  * from the scenarios behind the closed names. The invariants are held before the plan is even
  * assembled: the census the profile's population needs and the survival of the mix, each refusing
  * loudly before any load. The third - that the populations are seatable on the pool at all - was
- * held before the wiring existed, by {@link SeatedAccounts}, which is where the accounts of this
+ * held before the wiring existed, by {@link PlayingAccounts}, which is where the accounts of this
  * run come from.
  *
  * <p>One thread group per populated scenario, named with the scenario's own key, so the thread
@@ -48,7 +48,7 @@ public final class ProfilePlan {
     }
 
     public DslTestPlan plan(String jtlDirectory, String jtlFileName) {
-        WarmStartCensus.of(profile, wiring.seated()).check();
+        WarmStartCensus.of(profile, wiring.playing()).check();
         MixSurvivalCheck.check(profile);
         StepKit kit = new StepKit(baseUrl, profile.thinkTime());
         Map<ScenarioName, Scenario> scenarios = Scenarios.all(kit, wiring);

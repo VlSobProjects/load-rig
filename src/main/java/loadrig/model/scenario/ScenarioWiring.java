@@ -17,7 +17,7 @@ import loadrig.registry.UserDirectory;
 public final class ScenarioWiring {
 
     private final SessionRegistry sessions;
-    private final SeatedAccounts seated;
+    private final PlayingAccounts playing;
     private final TaskRegistry tasks;
     private final UserDirectory directory;
     private final StarvationLedger starvation;
@@ -28,12 +28,12 @@ public final class ScenarioWiring {
     private final String poolPassword;
     private final AtomicLong taskMarks = new AtomicLong();
 
-    public ScenarioWiring(SessionRegistry sessions, SeatedAccounts seated, TaskRegistry tasks,
+    public ScenarioWiring(SessionRegistry sessions, PlayingAccounts playing, TaskRegistry tasks,
             UserDirectory directory, StarvationLedger starvation, RefusalLedger refusals,
             ServiceLevelLedger serviceLevels, LoadProfile.HotSetSkew skew, String runTag,
             String poolPassword) {
         this.sessions = Objects.requireNonNull(sessions, "sessions");
-        this.seated = Objects.requireNonNull(seated, "seated");
+        this.playing = Objects.requireNonNull(playing, "playing");
         this.tasks = Objects.requireNonNull(tasks, "tasks");
         this.directory = Objects.requireNonNull(directory, "directory");
         this.starvation = Objects.requireNonNull(starvation, "starvation");
@@ -49,12 +49,13 @@ public final class ScenarioWiring {
     }
 
     /**
-     * The accounts this run occupies. A step that names a person draws from here and not from the
-     * whole pool: the pool is sized to the ceiling of the load model, and work handed to an
-     * account the run never signs in as leaves the run's own circulation.
+     * The accounts this run plays over its window - wider than the seats it holds at once, because
+     * sessions end and the next account in is chosen by state (DR-8). A step that names a person
+     * draws from here and not from the whole pool: the pool is sized to the ceiling of the load
+     * model, and work handed to an account the run never signs in as leaves its own circulation.
      */
-    public SeatedAccounts seated() {
-        return seated;
+    public PlayingAccounts playing() {
+        return playing;
     }
 
     public TaskRegistry tasks() {
