@@ -12,8 +12,17 @@ and the business scenarios with the load profile and service levels.
 
 This project is the rig: it drives the stack with a business-shaped load and produces the
 injector side of every capture. It also induces the injector-side defect variants of the
-scenario's dataset map. Load generation is the whole scope: fault surfaces inside the SUT, the
-capture extraction and the triage logic all belong to the other two projects.
+scenario's dataset map. Fault surfaces inside the SUT and the triage logic belong to the other two
+projects, and this project writes no automatic verdict.
+
+It does read its own run. A load-testing project that cannot say whether its own window was valid
+is not one, and the calibration rule this rig is held to has two halves it could not reach: the
+throttled-period counters and the application's log. It reads both itself, over the window its
+figures are computed from, and assembles a protocol from them beside each capture — the document a
+load-testing project hands over, made here by hand and by instrument. That protocol is also what
+the workflow-engine's automatic verdict is debugged against, which is why it stays beside the
+capture and never inside it, and why nothing computed here is ever offered to that path as an
+input: two readings of one run are evidence only while they are independent (DR-9).
 
 ## The artifacts a run leaves
 
