@@ -5,10 +5,10 @@
 Two customers, one chain. The **workflow-engine project** owns the `load-test-triage` scenario:
 a fully automatic triage of a completed load-test run, analyzed from captured files. Its datasets
 are real captures of a system under test running under a real load rig, with defect conditions
-induced for real. The **SUT project** (`todo-webapp`) provides that system as an observed Docker
-stack — the application, its MySQL database, Prometheus with three exporters — and has handed
-this project two specifications through its exchange desk: the host and core map, and the
-business scenarios with the load profile and service levels.
+induced for real. The **SUT project** (`spring-sut-task-tracker`) provides that system as an
+observed Docker stack — the application, its MySQL database, Prometheus with three exporters —
+and has handed this project two specifications through its exchange desk: the host and core map,
+and the business scenarios with the load profile and service levels.
 
 This project is the rig: it drives the stack with a business-shaped load and produces the
 injector side of every capture. It also induces the injector-side defect variants of the

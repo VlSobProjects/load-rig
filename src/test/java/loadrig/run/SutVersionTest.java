@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
  */
 class SutVersionTest {
 
-    /** The body the stand answered on 2026-08-29, recorded as the fixture this reader is for. */
+    /** The body the stand answered on 2026-09-03, recorded as the fixture this reader is for. */
     private static final String THE_STANDS_ANSWER = """
-            {"build":{"artifact":"todo-webapp-b3","name":"todo-webapp-b3",\
-            "time":"2026-08-27T20:45:32.696Z","version":"1.0.0","group":"com.example"}}""";
+            {"build":{"artifact":"spring-sut-task-tracker","name":"spring-sut-task-tracker",\
+            "time":"2026-09-02T22:21:29.818Z","version":"1.0.0","group":"com.example"}}""";
 
     @Test
     @DisplayName("the version is read from the build facts the stand publishes")
