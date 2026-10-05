@@ -22,8 +22,8 @@ Each field is described on the desk itself. The rules below rely on these:
 | Field | What it states |
 | --- | --- |
 | `Status` | `draft`, `sent`, `answered` or `superseded` |
-| `From`, `To` | The project that wrote the letter, and the one project it addresses |
-| `Kind` | A specification, questions, an answer, a request, a notice or a reference |
+| `From`, `To` | The project that wrote the letter, and the one project it addresses; a letter of kind `info` addresses none |
+| `Kind` | A specification, questions, an answer, a request, a notice, a reference or `info` |
 | `Date`, `Sent on` | The date of the letter, and the day it was released; the two are not the same |
 | `In answer to` | The letter or letters this one answers, corrects or follows |
 | `What it changed` | Where the recipient wrote what the letter changes, or that it changes nothing and why |
@@ -59,6 +59,12 @@ Each field is described on the desk itself. The rules below rely on these:
    of one conversation, so what must reach several projects is written once for each of them. The
    letter that opened the desk, `EX-1`, has several addressees and is the one exception: a project
    that has answered it no longer counts it as waiting.
+9. **A letter is written only when it asks for something or changes something.** Reading is
+   confirmed in `What it changed` and never by another letter, and an answer is not answered. What
+   every project should know and nobody has to act on is one letter of kind `info`: it has no
+   addressee, asks for no answer and no record, and is never counted as waiting. A session that
+   works with the desk reads the released ones, in the view `Info`; when one no longer holds, a
+   new one supersedes it.
 
 ## What stays in `exchange/`
 
