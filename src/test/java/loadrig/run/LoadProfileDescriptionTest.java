@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import loadrig.model.Role;
 import loadrig.model.profile.Campaign;
@@ -98,6 +99,36 @@ class LoadProfileDescriptionTest {
     }
 
     @Test
+    void noComputedFigureIsWrittenBeyondThePublishedDecimals(@TempDir Path directory)
+            throws IOException {
+        LoadProfile profile = day();
+        Path file = directory.resolve("load-profile.json");
+
+        descriptionOf(profile).writeTo(file);
+
+        JsonNode description = new ObjectMapper().readTree(file.toFile());
+        JsonNode targets = description.get("targetRatesPerMinute");
+        targets.fieldNames().forEachRemaining(name ->
+                assertTrue(decimalsOf(targets.get(name))
+                                <= LoadProfileDescription.PUBLISHED_DECIMALS,
+                        "the rate of " + name + " is written with the noise of the arithmetic"
+                                + " that computed it: " + targets.get(name).asText()));
+        JsonNode growth = description.get("population").get("tableGrowthOverWindow");
+        assertTrue(decimalsOf(growth) <= LoadProfileDescription.PUBLISHED_DECIMALS,
+                "the table's growth is written with the noise of the arithmetic that computed"
+                        + " it: " + growth.asText());
+    }
+
+    @Test
+    void aPublishedFigureIsTheComputedOneToTheStatedDecimalsHalfUp() {
+        assertEquals(15.6, LoadProfileDescription.published(15.600000000000001));
+        assertEquals(14.4, LoadProfileDescription.published(14.399999999999999));
+        assertEquals(13.333, LoadProfileDescription.published(40.0 / 3));
+        assertEquals(0.001, LoadProfileDescription.published(0.0005));
+        assertEquals(120.0, LoadProfileDescription.published(120.0));
+    }
+
+    @Test
     void thePopulationIsTheMeasuredStandAndTheEstablishedCensus(@TempDir Path directory)
             throws IOException {
         LoadProfile profile = day();
@@ -171,6 +202,11 @@ class LoadProfileDescriptionTest {
             assertEquals(levels.levelOf(band), byBand.get(band.key()).asInt(),
                     "the levels are published in the file's own spelling: " + byBand);
         }
+    }
+
+    /** The decimals a number of the written file carries, as the file spells it. */
+    private static int decimalsOf(JsonNode number) {
+        return Math.max(0, new BigDecimal(number.asText()).stripTrailingZeros().scale());
     }
 
     private static LoadProfile day() {
