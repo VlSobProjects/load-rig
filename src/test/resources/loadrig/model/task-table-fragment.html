@@ -1,0 +1,75 @@
+<!--
+  A captured answer of the application to a task creation in the answer shape of DR 1: the task
+  table alone, carrying more than one row, so that the identity of a task can only be read by
+  anchoring on the title the creating virtual user used.
+-->
+<section id="task-table" class="task-list">
+
+    <table class="table task-table">
+        <thead>
+        <tr>
+            <th>Created</th>
+            <th>Title</th>
+            <th>Description</th>
+            <th>Creator</th>
+            <th>Assignee</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Task</th>
+        </tr>
+        </thead>
+        <tbody id="task-list-body">
+            <tr id="task-41">
+
+    <td>2026-08-28 09:10</td>
+    <td>lr1-1-0</td>
+    <td class="task-description">the transport walk of the load rig</td>
+    <td>manager</td>
+    <td>worker</td>
+    <td>2026-08-31</td>
+
+    <td>
+        <span>
+            <span class="badge text-bg-secondary">Open</span>
+        </span>
+    </td>
+
+    <td class="task-open">
+        <a href="/tasks/41?scope=by-me&amp;sort=created&amp;page=1"
+           hx-get="/tasks/41?scope=by-me&amp;sort=created&amp;page=1"
+           hx-target="#task-modal-host"
+           hx-swap="innerHTML"
+           class="btn btn-sm btn-info">Open</a>
+    </td>
+</tr>
+            <tr id="task-42">
+
+    <td>2026-08-28 09:11</td>
+    <td>lr1-2-0</td>
+    <td class="task-description">the transport walk of the load rig</td>
+    <td>manager</td>
+    <td>worker</td>
+    <td>2026-08-31</td>
+
+    <td>
+        <span>
+            <span class="badge text-bg-secondary">Open</span>
+        </span>
+    </td>
+
+    <td class="task-open">
+        <a href="/tasks/42?scope=by-me&amp;sort=created&amp;page=1"
+           hx-get="/tasks/42?scope=by-me&amp;sort=created&amp;page=1"
+           hx-target="#task-modal-host"
+           hx-swap="innerHTML"
+           class="btn btn-sm btn-info">Open</a>
+    </td>
+</tr>
+        </tbody>
+    </table>
+
+    <nav class="task-paging" aria-label="Pages">
+        <span class="task-paging-state">Page 1 of 1, 2 in total</span>
+    </nav>
+
+</section>

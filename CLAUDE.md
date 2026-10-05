@@ -51,8 +51,10 @@ Java 21 (Gradle toolchain), Gradle via the frozen wrapper.
 ./gradlew test --tests loadrig.DslWiringTest   # one test class
 ```
 
-The unit tests need no running SUT stack. Load runs against the stack are documented per run
-harness command as they appear (`docs/roadmap.md` LR-5).
+The unit tests need no running SUT stack. Load runs against the stack need one:
+`./gradlew runProfile` drives the stated profile (`-Dloadrig.profile=<file>`, the day profile by
+default) and lays the capture artifacts into a per-run directory under the results root;
+`README.md` documents the run commands.
 
 ## Architecture
 
