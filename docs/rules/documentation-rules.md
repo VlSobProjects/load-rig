@@ -10,6 +10,7 @@ Only the documents listed below may exist:
 | `README.md` | What the project is, what it is for, how to build and run it |
 | `AGENTS.md` | Agent entrypoint, routing only |
 | `CLAUDE.md` | Claude Code entrypoint; routes like `AGENTS.md`, plus a condensed non-negotiable-rules/commands summary (stated exception to §4, kept in sync with the documents it summarizes) |
+| `LICENSE` | The licence the repository is published under |
 | `docs/README.md` | Documentation index |
 | `docs/rules/` | General and task specific rules |
 | `docs/brief.md` | What the rig is for, the binding facts received, the questions owed back |
