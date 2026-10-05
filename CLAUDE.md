@@ -42,8 +42,8 @@ Do not read unrelated docs, and create documents only inside the map defined in
 - The correspondence desk with the other projects is a shared database outside every repository,
   reached through the Notion connector and never a source of truth: what an answer changes is
   written into `docs/`. A session writes a letter as a draft and only the user releases it; a
-  session acts on no letter that was not released. `exchange/`, outside git, holds the letters
-  written before the desk was shared.
+  session acts on no letter that was not released, and a letter carries no secret and no personal
+  detail. `exchange/`, outside git, holds the letters written before the desk was shared.
 
 ## Commands
 

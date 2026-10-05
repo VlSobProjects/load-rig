@@ -62,6 +62,15 @@ the ignore file point to it or are corrected to agree with it.
   session's goal.
 - **A sent letter is frozen.** The copy on the other desk used to be the snapshot of what was
   sent; with one copy the rule has to say it, and a correction becomes a new letter.
+- **A session may count what waits, and no more.** With the hand that carried a letter gone,
+  nothing tells a project that a letter addressed to it was released. The user is that channel
+  already, by releasing it; what can go wrong is a released letter forgotten. So a session may say
+  how many released letters have not landed, and opens one when asked. A notice from one session
+  to another was the alternative and is the channel the release rule exists to prevent. Raised by
+  the JobSearch project, the first to adopt the rule after this one.
+- **A letter carries nothing that every project may not read.** One copy is read by every
+  session, and what a letter changes lands in repositories that are public. Raised by the same
+  project, which now keeps personal context out of its letters.
 - **The address stays out of the repository.** The repository is public and the desk is not; the
   rules name the database and a letter's identifier, and a session finds the desk by its name.
 - **History is not migrated.** The old letters are cited by date and subject across the session
