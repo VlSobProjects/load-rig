@@ -3,6 +3,8 @@ package loadrig.run;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -61,6 +63,15 @@ public record LoadProfileDescription(
      * in the artifact, so a log is never read under the wrong semantics.
      */
     static final String SAMPLES_ARE_STAMPED_AT_START = "start";
+
+    /**
+     * How many decimals a computed figure is published with. The rates are computed in binary
+     * fractions, and written as computed they carry the arithmetic's noise into the artifact - a
+     * rate of 15.6 stated as 15.600000000000001. A thousandth of a step per minute is far below
+     * anything an achieved intensity is compared at, so the reader loses nothing. Only the
+     * statement is rounded: the census and the plan are computed from the demand itself.
+     */
+    static final int PUBLISHED_DECIMALS = 3;
 
     /**
      * The per-operation targets the profile implies, in steps per minute. The seven operations are
@@ -138,16 +149,16 @@ public record LoadProfileDescription(
             ScenarioDemand demand, PlayingAccounts playing, WarmStartCensus census,
             WarmStart.Result warmStart, String runStamp, String sutVersion) {
         TargetRates targets = new TargetRates(
-                demand.stepsPerMinute(),
-                demand.rateOf(StepKind.LOOKING_AT_A_LIST),
-                demand.rateOf(StepKind.OPENING_ONE_TASK),
-                demand.rateOf(StepKind.MOVING_A_TASK),
-                demand.rateOf(StepKind.DISCUSSION),
-                demand.rateOf(StepKind.RUNNING_A_REPORT),
-                demand.rateOf(StepKind.CREATING_A_TASK),
-                demand.rateOf(StepKind.DELETING_A_TASK),
-                demand.settlementsPerMinute(),
-                demand.sessionsGivenUpPerMinute());
+                published(demand.stepsPerMinute()),
+                published(demand.rateOf(StepKind.LOOKING_AT_A_LIST)),
+                published(demand.rateOf(StepKind.OPENING_ONE_TASK)),
+                published(demand.rateOf(StepKind.MOVING_A_TASK)),
+                published(demand.rateOf(StepKind.DISCUSSION)),
+                published(demand.rateOf(StepKind.RUNNING_A_REPORT)),
+                published(demand.rateOf(StepKind.CREATING_A_TASK)),
+                published(demand.rateOf(StepKind.DELETING_A_TASK)),
+                published(demand.settlementsPerMinute()),
+                published(demand.sessionsGivenUpPerMinute()));
         Map<String, Integer> populations = new LinkedHashMap<>();
         for (ScenarioName name : ScenarioName.values()) {
             populations.put(name.key(), profile.scenarioPopulation().get(name));
@@ -169,8 +180,15 @@ public record LoadProfileDescription(
                 targets,
                 new Population(census.tasks(), census.buckets().size(),
                         warmStart.tasksOnTheStand(), warmStart.read(), warmStart.created(),
-                        demand.tableGrowthOverWindow()),
+                        published(demand.tableGrowthOverWindow())),
                 ServiceLevelsApplied.of(campaign.serviceLevels()));
+    }
+
+    /** A computed figure as the artifact states it: to {@link #PUBLISHED_DECIMALS}, half up. */
+    static double published(double computed) {
+        return BigDecimal.valueOf(computed)
+                .setScale(PUBLISHED_DECIMALS, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     public void writeTo(Path file) {

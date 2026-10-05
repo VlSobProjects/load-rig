@@ -169,14 +169,14 @@ What the run was meant to apply, written before the load starts - `load-profile.
 ```jsonc
 {
   "profile" : "rotation",
-  "runStamp" : "20260831-231527",
+  "runStamp" : "20261005-153200",
   // ...
   "targetRatesPerMinute" : {
     "steps" : 120.0,
     "lookingAtAList" : 44.4,
     "openingOneTask" : 26.4,
-    "movingATask" : 15.600000000000001,
-    "discussion" : 14.399999999999999,
+    "movingATask" : 15.6,
+    "discussion" : 14.4,
     "runningAReport" : 12.0,
     "creatingATask" : 6.0,
     "deletingATask" : 1.2,
@@ -186,9 +186,9 @@ What the run was meant to apply, written before the load starts - `load-profile.
   "population" : {
     "census" : 357,
     "censusBuckets" : 63,
-    "tasksOnTheStandAtStart" : 1877,
-    "readFromTheStand" : 500,
-    "createdByTheWarmStart" : 241,
+    "tasksOnTheStandAtStart" : 3079,
+    "readFromTheStand" : 440,
+    "createdByTheWarmStart" : 272,
     "tableGrowthOverWindow" : 24.0
   },
   // ...
@@ -198,23 +198,23 @@ What the run was meant to apply, written before the load starts - `load-profile.
 What it realized - `run-report.txt`:
 
 ```text
-the run rotation-20260831-231527 is complete: profile "rotation", SUT version 1.0.0
+the run rotation-20261005-153200 is complete: profile "rotation", SUT version 1.0.0
   10 virtual users, ramp 30 s, steady window 5 min
   the rotation: 30 account(s) play, 3 per seat
     15 worker account(s) play 5 seat(s)
     12 manager account(s) play 4 seat(s)
     3 administrator account(s) play 1 seat(s)
-  warm start: a census of 357 task(s) over 63 bucket(s); the stand held 1877 task(s), 500 were read and 241 created
-  795 samples, 0 of them failed
+  warm start: a census of 357 task(s) over 63 bucket(s); the stand held 3079 task(s), 440 were read and 272 created
+  811 samples, 0 of them failed
   refusals: the application refused nothing
   ...
-  starvation ledger:
-    the manager approves finished work skipped 1 time(s)
+  starvation ledger: every gate found its pick
   artifacts: load-profile.json, samples.jtl, run-report.txt
 ```
 
-The ledger is what joins the two: where the realized mix fell short of the intended one, the
-report names the step and the count instead of leaving the drift to be found in the log.
+The ledger is what joins the two: where a realized mix falls short of the intended one, the report
+names the step and the count instead of leaving the drift to be found in the log. In this run no
+step was skipped.
 
 ## Layout
 
