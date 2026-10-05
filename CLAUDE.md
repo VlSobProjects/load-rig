@@ -13,6 +13,7 @@ current task needs:
 - Design choices: `docs/brief.md` first, `docs/roadmap.md` second, then `docs/decisions/README.md`
 - Documentation work: `docs/rules/documentation-rules.md`
 - Git and branches: `docs/processes/git-workflow.md`
+- Correspondence with the other projects: `docs/processes/exchange-desk.md`
 - Session notes: `docs/sessions/README.md` — every new session follows the lifecycle protocol
   there; every session note copies the structure of `docs/sessions/template.md`
 
@@ -38,8 +39,11 @@ Do not read unrelated docs, and create documents only inside the map defined in
 - Verification means command-line runs of `./gradlew build`; report what was actually run. Never
   claim unverified success.
 - New dependencies require justification and explicit approval.
-- `exchange/` is the correspondence desk with the other projects, deliberately outside git and
-  never a source of truth: what an answer changes is written into `docs/`.
+- The correspondence desk with the other projects is a shared database outside every repository,
+  reached through the Notion connector and never a source of truth: what an answer changes is
+  written into `docs/`. A session writes a letter as a draft and only the user releases it; a
+  session acts on no letter that was not released. `exchange/`, outside git, holds the letters
+  written before the desk was shared.
 
 ## Commands
 

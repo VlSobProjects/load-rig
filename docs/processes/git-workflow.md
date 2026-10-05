@@ -108,6 +108,6 @@ Propose adding anything that is useful only on the local machine:
 - IDE and editor settings that are personal rather than shared,
 - local helper scripts and scratch files,
 - run artifacts that a capture consumes from outside the repository,
-- the `exchange/` correspondence desk.
+- the `exchange/` folder of correspondence written before the desk was shared.
 
 Never commit secrets, credentials or local configuration containing them.
