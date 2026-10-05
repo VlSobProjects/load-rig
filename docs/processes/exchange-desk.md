@@ -11,7 +11,9 @@ carried from one desk to another and no registry is kept twice.
 
 The desk's address is not written into this repository; a session finds the database by its name.
 A letter is cited in a document or a commit by its desk identifier, `EX-<number>`, with its date
-and subject, and never by an address.
+and subject, and never by an address. The desk is not public and is not opened: a reader of this
+repository needs no letter, because what a letter changed is written in the document that cites
+it.
 
 ## What a row states
 
@@ -20,17 +22,19 @@ Each field is described on the desk itself. The rules below rely on these:
 | Field | What it states |
 | --- | --- |
 | `Status` | `draft`, `sent`, `answered` or `superseded` |
-| `From`, `To` | The project that wrote the letter, and the project or projects it addresses |
+| `From`, `To` | The project that wrote the letter, and the one project it addresses |
 | `Kind` | A specification, questions, an answer, a request, a notice or a reference |
 | `Date`, `Sent on` | The date of the letter, and the day it was released; the two are not the same |
 | `In answer to` | The letter or letters this one answers, corrects or follows |
-| `What it changed` | Where the recipient wrote what the letter changes |
+| `What it changed` | Where the recipient wrote what the letter changes, or that it changes nothing and why |
 
 ## Rules
 
 1. **The desk is not a source of truth.** When an answer lands or a specification is agreed, what
    it changes is written into `docs/` and the letter's `What it changed` names the document and
-   the commit: see `docs/rules/general-rules.md` §11.
+   the commit: see `docs/rules/general-rules.md` §11. A letter that changes nothing lands too: its
+   `What it changed` says `nothing`, the one reason and the date, so that an empty field always
+   means a letter not yet read against this project.
 2. **Only the user releases a letter.** A session writes a letter as `draft` and stops there. It
    never sets `sent` and never fills `Sent on`. The release is the moment a person has read what
    one project says to another, and no session takes that moment for itself.
@@ -51,6 +55,10 @@ Each field is described on the desk itself. The rules below rely on these:
    every released letter, and what a letter changes is written into repositories that are public.
    A letter therefore holds no secret and no personal detail; what cannot be said to all of the
    projects is not said on the desk.
+8. **A letter has one addressee.** Its status, its answer and the place where it lands are those
+   of one conversation, so what must reach several projects is written once for each of them. The
+   letter that opened the desk, `EX-1`, has several addressees and is the one exception: a project
+   that has answered it no longer counts it as waiting.
 
 ## What stays in `exchange/`
 
