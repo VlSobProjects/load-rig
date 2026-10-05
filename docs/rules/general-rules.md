@@ -68,11 +68,15 @@ documentation or the internet instead of relying on memory.
 When unsure whether to search or ask, ask.
 
 ## 11. The exchange desk is not a source of truth
-Correspondence with the other projects lives in `exchange/`, deliberately outside git.
+Correspondence with the other projects lives on the shared exchange desk, outside every
+repository: a letter exists there once, and every project reads the same copy.
 When an answer lands or a specification is agreed, what it changes is written into `docs/` — the
-brief, the roadmap or a decision record — and the exchange row is marked accordingly.
+brief, the roadmap or a decision record — and the letter's row is marked accordingly.
 A binding number from a specification becomes explicit configuration in this repository, never an
 implicit constant.
+A session writes a letter as a draft and only the user releases it; a session acts on no letter
+that was not released.
+Details: see `docs/processes/exchange-desk.md`.
 
 ## 12. Commit confirmation
 A commit is never made without the user seeing its message first.
