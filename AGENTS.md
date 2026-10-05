@@ -8,6 +8,7 @@ Read only the documents relevant to the current task:
 - Design choices: `docs/brief.md` first, `docs/roadmap.md` second, then `docs/decisions/README.md`
 - Documentation work: `docs/rules/documentation-rules.md`
 - Git and branches: `docs/processes/git-workflow.md`
+- Correspondence with the other projects: `docs/processes/exchange-desk.md`
 - Session notes: `docs/sessions/README.md`
   - For every new session, follow the lifecycle protocol in this document from start to closure/interruption.
 

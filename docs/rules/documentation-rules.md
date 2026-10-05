@@ -19,9 +19,10 @@ Only the documents listed below may exist:
 | `docs/sessions/` | Session notes and the session registry |
 | `docs/processes/` | Workflows such as git |
 
-`exchange/` is the correspondence desk with the other projects and is deliberately outside git:
-its documents change when the other side answers. It is not part of this map and is never a
-source of truth — see `docs/rules/general-rules.md` §11.
+The correspondence desk with the other projects is a shared database outside every repository:
+its letters change when the other side answers. It is not part of this map and is never a source
+of truth — see `docs/rules/general-rules.md` §11 and `docs/processes/exchange-desk.md`. The folder
+`exchange/`, deliberately outside git, holds the letters written before the desk was shared.
 
 Creating a document outside this map, or a new kind of document, requires explicit approval
 first. The map may change, but only as a deliberate decision.

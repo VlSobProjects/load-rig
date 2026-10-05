@@ -7,7 +7,7 @@ out/
 .idea/
 *.iml
 
-# Correspondence desk: changes under the reader, deliberately outside git
+# Correspondence written before the desk was shared: deliberately outside git
 exchange/
 
 # Run artifacts (JTL logs, reports) are produced outside the repository

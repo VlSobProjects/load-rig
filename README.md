@@ -225,7 +225,7 @@ step was skipped.
 | `src/main/java/loadrig/registry` | The session registry and the task registry shared by the virtual users |
 | `src/main/java/loadrig/run` | The run harness: assembling a profile, executing it, leaving the artifacts |
 | `docs/` | Rules, brief, roadmap, decisions, sessions — see `docs/README.md` |
-| `exchange/` | The correspondence desk with the other projects; deliberately outside git |
+| `exchange/` | The correspondence with the other projects written before the desk became a shared database; deliberately outside git |
 
 ## Constraints the rig must honour
 
