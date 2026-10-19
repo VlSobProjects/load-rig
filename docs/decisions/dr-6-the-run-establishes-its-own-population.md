@@ -1,6 +1,6 @@
 # DR 6 — The run establishes its own population: a computed census and a warm start
 
-**Status:** Draft
+**Status:** Draft. Its warm start that creates the difference is made transitional by DR 10.
 
 ## Context
 

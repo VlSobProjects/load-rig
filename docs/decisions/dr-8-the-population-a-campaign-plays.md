@@ -1,6 +1,6 @@
 # DR 8 — The population a campaign plays: sessions that end, players beyond the seats, a stand levelled to a stated state
 
-**Status:** Draft
+**Status:** Draft. Its levelling of the stand in both directions is replaced by DR 10.
 
 ## Context
 
