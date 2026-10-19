@@ -1,6 +1,7 @@
 # DR 10 — The SUT owns the initial state: a named stand profile applied on request
 
-**Status:** Draft
+**Status:** Accepted. The SUT project took the proposal in EX-31 (2026-10-19) as its item `RM-3`;
+the rules below state what that answer settled.
 
 ## Context
 
@@ -49,28 +50,40 @@ that is the other project's goal.
 Alternative 1, under five rules.
 
 **The initial state is a named stand profile, owned and applied by the SUT project.** A profile
-names the accounts and their roles, the volume, the tasks by status and assignee and the fall of
-due dates. Applying it is an operation of the stand and not of a rig, and applying the same profile
-twice gives the same stand.
+names the accounts and their roles, the volume, the tasks by status with the creator and the
+assignee of each, and the fall of due dates and creation times, all measured from the moment it is
+applied. Applying it is a step of the stand's pipeline, not an act of a rig, and it runs on its own
+against a stand that is up: the application stops, the database is filled to the profile, and
+both are started again. Applying the same profile twice gives the same stand, identities included;
+a changed profile takes a new name.
 
 **A profile's content is agreed through the desk, from the demand each rig states.** This project
 states what its model needs at the top step of a campaign: the accounts of the rotation by role,
 and the census per bucket and per account. The pool's composition stays this project's statement
-and the profile's input, as the brief already has it. A profile covers the demand of every rig
-that plays on it, and a change to it reaches every such rig through the SUT project.
+and the profile's input, as the brief already has it. A rig's demand is a lower bound: a profile
+covers the demand of every rig that plays on it, and the SUT project chooses the volume against the
+database's buffer pool and reaches it with tasks outside every census. A change to a profile
+reaches every such rig through the SUT project.
 
 **Every step of a campaign opens on the profile.** DR-8's rule that the steps of one campaign differ
-in intensity alone stands; what changes is who brings the state about. The campaign runner asks the
-stand for the campaign's profile before each step instead of levelling the stand itself.
+in intensity alone stands; what changes is who brings the state about. The campaign runner has the
+stand set to the campaign's profile before each step instead of levelling the stand itself.
+Applying a profile always restarts the database and the application, with the buffer pool neither
+saved nor reloaded, and drops every session, so every step opens cold and signs in anew: the
+settling interval before a measured window is sized for a cold application and a cold buffer
+pool, and no rig drives the stand while a profile is applied.
 
 **The warm start reads and checks, and no longer creates.** Once profiles exist the warm start reads
 the stand from the list page as it does now, registers what it finds, and refuses the run when the
 census is not met, instead of creating the difference. Until then it stays as it is: it creates
 the missing part and removes nothing. DR-8's levelling in both directions is not built here.
 
-**A capture names the profile its stand was set to.** The load-profile description carries the
-profile's name beside the volume the warm start measured, so that two captures of two rigs can be
-checked to have started from the same state rather than assumed to.
+**A capture names the profile its stand was set to.** The stand is the source of that fact: the
+data generator records the name in the database, and the application reports it in its log and
+in its scrape. The load-profile description carries the name the campaign asked for, beside the
+volume the warm start measured, and the run's own readings check it against what the stand
+reports, so that two captures of two rigs can be shown to have started from the same state rather
+than assumed to.
 
 This record amends two rules of earlier records: DR-6's warm start that creates the difference
 becomes transitional, and DR-8's warm start that levels the stand in both directions is replaced by
@@ -88,7 +101,13 @@ the profile.
   search cannot open on a stated state before the profiles exist, or else runs on the transitional
   warm start and says so in its captures.
 - A reset before every step costs the stand time this project does not control. The campaign's
-  duration now includes it, and how long it takes is asked through the desk.
+  duration now includes it; the SUT project measures it when the profile is built and publishes it
+  with the profile.
+- Every step opens on a cold application and a cold buffer pool by construction. A campaign pays a
+  longer settling interval for it, and in exchange no step inherits the warmth of the one before.
+- The warm start will read a stand holding more tasks than its census, because the volume is
+  chosen beyond every rig's demand. Reading the list page over that volume is the warm start's
+  cost, met when the profiles land.
 - The census becomes a statement of demand sent to another project instead of a figure computed and
   used in one run. A change to the weights, the populations or the rotation's depth that raises it
   now means a changed profile, which goes through the desk before the campaign that needs it.
