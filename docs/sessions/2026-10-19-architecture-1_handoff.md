@@ -35,6 +35,11 @@ on the desk.
   assumption is what the proposal changes.
 - Two drafts stand on the desk: EX-27, the answer to EX-25 for load-rig-locust, and EX-28, the
   request to the SUT project that follows EX-20.
+- After the merge, EX-29 to the SUT project adds five points to EX-28: applying a profile is a step
+  of the stand's pipeline, with the question whether it runs alone on a stand that is up; the
+  profile states every task's creator as well as its assignee; due dates fall relative to the
+  moment of applying; whether applying restarts the application is stated; applying drops every
+  session. All three letters were released on 2026-10-19.
 
 ## Decisions
 - Alternative 1 of DR-10: the SUT project owns the accounts and the initial state, the stand is set
@@ -53,11 +58,11 @@ on the desk.
 1. The user releases EX-27 and EX-28, or corrects them.
 2. When both rigs agree, the user takes the letters to the SUT project in a session there.
 3. When the SUT project answers: DR-10 is accepted or revised, the brief's initial state and the
-   roadmap's LR-13 and LR-17 are corrected, and EX-25 and EX-28 are marked landed.
+   roadmap's LR-13 and LR-17 are corrected, and EX-28 and EX-29 are marked landed.
 4. Until then the warm start and the provisioning walk stay as they are, and the levelling in both
    directions planned by DR-8 is not built.
 
 ## References
 - Branch `docs/dr_10-the-sut-owns-the-initial-state`.
 - `docs/decisions/dr-10-the-sut-owns-the-initial-state.md`; status lines of DR-6 and DR-8.
-- Desk: EX-25 (answered by EX-27), EX-20 (followed by EX-28).
+- Desk: EX-25 (answered by EX-27), EX-20 (followed by EX-28), EX-28 (followed by EX-29).
