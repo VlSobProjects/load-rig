@@ -42,3 +42,4 @@ The registry is the only index. Add the row when the record lands on `developmen
 | 7 | [The maximum is searched for against the baseline, under a criterion of its own](dr-7-the-search-has-its-own-criterion.md) | Draft | 2026-08-31-architecture-1 |
 | 8 | [The population a campaign plays: sessions that end, players beyond the seats, a stand levelled to a stated state](dr-8-the-population-a-campaign-plays.md) | Draft | 2026-09-01-architecture-1 |
 | 9 | [The rig reads its own run: a protocol made here, independent of the automated path](dr-9-the-rig-reads-its-own-run.md) | Draft | 2026-09-04-architecture-1 |
+| 10 | [The SUT owns the initial state: a named stand profile applied on request](dr-10-the-sut-owns-the-initial-state.md) | Accepted | 2026-10-19-architecture-1, 2026-10-19-documentation-1 |
