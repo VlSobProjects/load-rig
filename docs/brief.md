@@ -28,7 +28,8 @@ input: two readings of one run are evidence only while they are independent (DR-
 
 - **The load-profile description** — what the run was meant to apply: operations, target rates,
   ramp, the population under the load — the census the profile needed, the rotation of accounts that
-  played the window, and the number of tasks the stand was measured to hold before it — the service
+  played the window, the number of tasks the stand was measured to hold before it, and the name of
+  the stand profile it was set to once the SUT project sets profiles — the service
   levels the run is judged by, as the campaign fixed them, because a capture judged against figures
   nobody wrote down cannot be re-read — and the version of the SUT under test, read from the stand's
   information endpoint once before the window opens — outside the task surface and outside the
@@ -59,7 +60,13 @@ configuration, never implicit constants.
 - **The core map.** The generator gets one pinned physical core pair and an explicit memory
   limit on the capture host; it must never take the system's cores or the collectors' cores. The
   calibration rule — the throttled-period counter flat over the window for the application and
-  the database — decides whether a run counts at all.
+  the database — decides whether a run counts at all. The generator's row is one budget held by one
+  generator at a time, whichever rig it belongs to; the lock is a container name every rig's
+  generator runs under, refused by the engine while it is taken. The generator is observed by the
+  stack's container collector through a label the stack gives its image, and runs no collector of
+  its own. Its artefacts go to a directory on the host outside every volume of the stand. The
+  application's core set may be narrowed for a later campaign, on the set alone and never by a
+  quota.
 - **The load model.** A clean baseline of ten virtual users with think times drawn per step; the
   ceiling of twenty is a hypothesis to be tested by a stepped run, not a measured maximum.
 - **The scenarios.** Three walked role scenarios — worker, manager, administrator — and the
@@ -79,9 +86,9 @@ configuration, never implicit constants.
   absent (DR-8). How many more is the campaign's stated depth and not a step's business: the ratio
   between the people who play and the seats they rotate through is what decides how wide the
   working set is, so it is fixed for every step of a campaign. What the window adds to the table
-  itself is published as a fact of the capture; how much the stand holds when the window opens is
-  the campaign's own stated figure, which the warm start levels to in both directions, so that the
-  steps of one campaign differ in intensity alone.
+  itself is published as a fact of the capture; what the stand holds when the window opens is the
+  stand profile the campaign names, which the SUT project applies before every step, so that the
+  steps of one campaign differ in intensity alone (DR-10).
 - **The refusal codes.** The task surface answers exactly five, and the list is closed: a request
   the surface never produced, an action the actor does not own, a name that matches nothing, an
   action the current status does not offer, and a required field left blank. A triage that
@@ -93,17 +100,23 @@ configuration, never implicit constants.
   scenarios follow the screens, so it can never be user behaviour in a clean capture, and its
   appearance is a defect of the rig or a deliberately induced fault.
 - **The initial state.** The accounts and the seeded tasks both belong to the SUT project's
-  seeding item: two owners of the initial state are two states nobody reproduces. Once it lands
-  this project provisions nothing, its provisioning walk retires, and the seeded accounts are not
-  held at a password change. Until then the walk stands and must remain a no-op against a seeded
-  stand. The pool's composition is this project's statement and that item's input, settled through
-  the desk before it runs. There is no manifest of task identities and there will be none — no
+  seeding item: two owners of the initial state are two states nobody reproduces, and since a
+  second rig compares its results with this one on the same stand, the state serves every rig. It
+  is a named stand profile — the accounts by role, the volume, every task with its status, creator
+  and assignee, the dates measured from the moment it is applied — set by a step of the stand's
+  pipeline before every run and every step of a campaign. Applying it restarts the database and the
+  application cold and drops every session, and no rig drives the stand meanwhile. The volume is
+  the SUT project's choice, made against the database's buffer pool; each rig's census is a lower
+  bound the profile covers (DR-10). Once profiles land this project provisions nothing, its
+  provisioning walk retires, and the seeded accounts are not held at a password change. Until then
+  the walk stands and must remain a no-op against a seeded stand. The pool's composition is this
+  project's statement and the profile's input, settled through the desk. There is no manifest of task identities and there will be none — no
   user of the application holds one — so the rig learns the stand from the list page ordered by
   due date, which is the intended path and not a workaround. Until the seeding lands, a run brings
   about the population its own profile needs: the census is computed per bucket and a warm start
   reads what the stand holds and creates the difference, before the window and outside the result
-  log (DR-6). It degenerates to pure reading on a seeded stand, so the seeding costs it no
-  rewrite.
+  log (DR-6). On a stand set to a profile it reads and checks, and refuses a run whose census the
+  profile does not meet, instead of creating anything.
 - **The service levels.** Chosen, not measured, and a calibration lever: fixed before a
   campaign, recorded with every capture, held across the baseline and the faulted run alike. Their
   bands are mostly the specification's rows and are not confined to them: the load model is this
@@ -153,7 +166,9 @@ Three of the scenario's dataset variants are induced here, not in the SUT:
 - **The flooding thread group** — a lost think time floods one operation at the maximal rate;
   the injector's own data shows the flood while the service logs stay clean.
 - **The starved injector** — the generator short of capacity: the system is healthy but the
-  achieved intensity sinks below the target.
+  achieved intensity sinks below the target. The mechanism is this project's: a container on the
+  stack's engine so the capture sees it, never on the collectors' cores, stating the cores each
+  variant takes, applied before a run and not during one.
 - **The injector dying mid-run** — a capped injector heap or a kill: the JTL records stop at a
   moment the service logs pass in silence.
 
@@ -167,14 +182,9 @@ Carried from the exchange documents; settled as the work meets them:
   ten they are nowhere near a limit; the stepped search takes the generator well past twenty, and a
   step whose achieved intensity fell short of its target is discarded rather than judged, so the
   answer arrives as a discarded step rather than as a quiet distortion.
-- Whether the application's core set may be narrowed for a later campaign — asked 2026-08-31, and
-  asked as an option rather than a request. Only the set may move: a quota that binds raises the
-  throttled-period counter, which the calibration rule reads as a capture made of the limit.
-- What volume the report will scan once the seeding item chooses one, and whether the item that
-  reduces the report to an indexed query lands before or after it. The report's headroom is the
-  one measured figure that is a statement about the database rather than about the application.
-- Where the generator writes its artifacts during a run, given that the database's disk work is
-  part of the evidence.
-- Whether the generator itself must be observed, and which project owns that collector.
-- The ownership of the starved-host fault mechanism: proposed to live in this project, beside
-  the injector, to be confirmed with the SUT project.
+- What volume the report will scan and how large the buffer pool is: both are chosen when the
+  seeding item is built, after the item that reduces the report to an indexed query. The report's
+  headroom is the one measured figure that is a statement about the database rather than about the
+  application, so the baseline is measured again once, on the first profile.
+- How long applying a profile takes: measured when the seeding item is built, and paid before every
+  step of a campaign.
